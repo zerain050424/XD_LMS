@@ -6,7 +6,7 @@
 ## 数据库文件
 - 数据库：`lms_db`
 - 建表SQL 路径：`/sql/create.sql`
-- 插入测试数据SQL路径：'/sql/insert.sql'
+- 插入测试数据SQL路径：`/sql/insert.sql`
 
 ## R1数据库表结构
 
