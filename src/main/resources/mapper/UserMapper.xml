@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.group3.xd_lms.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.group3.xd_lms.entity.User">
+        <id column="id" property="id"/>
+        <result column="user_account" property="user_account"/>
+        <result column="password" property="password"/>
+        <result column="user_name" property="fullName"/>
+        <result column="email" property="email"/>
+        <result column="role_id" property="roleId"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!-- 新增 -->
+    <insert id="insert">
+        INSERT INTO users(user_account, password, user_name, email, role_id, status)
+        VALUES (#{username}, #{password}, #{fullName}, #{email}, #{roleId}, #{status})
+    </insert>
+
+    <!-- 根据ID更新 -->
+    <update id="updateById">
+        UPDATE users
+        <set>
+            <if test="fullName != null">user_name = #{fullName},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="roleId != null">role_id = #{roleId},</if>
+            <if test="status != null">status = #{status}</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE id = #{id}
+    </select>
+
+    <!-- 删除 -->
+    <delete id="deleteById">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+
+    <!-- 根据账号查询（登录） -->
+    <select id="selectByUserAccount" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE user_account = #{userAccount}
+    </select>
+
+    <!-- 修改状态 -->
+    <update id="updateStatusById">
+        UPDATE users SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <!-- 修改密码 -->
+    <update id="updatePasswordById">
+        UPDATE users SET password = #{password} WHERE id = #{id}
+    </update>
+
+    <!-- 查询全部 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM users
+    </select>
+
+    <!-- 根据角色查询 -->
+    <select id="selectByRoleId" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 根据状态查询 -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE status = #{status}
+    </select>
+
+    <!-- 模糊搜索 -->
+    <select id="searchByKeyword" resultMap="BaseResultMap">
+        SELECT * FROM users
+        WHERE user_account LIKE CONCAT('%',#{keyword},'%')
+           OR user_name LIKE CONCAT('%',#{keyword},'%')
+    </select>
+
+</mapper>
