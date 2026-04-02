@@ -84,11 +84,32 @@
 - 借阅记录与用户/图书实物级联删除
 
 ## 函数分配
+
 ### Reader
-| 函数 |负责人 |
-| UserController/login | 赵汶潼 | 
-| BorrowController/borrowBook |戚翰石|
-| BOrrowController/returnBook | 赵汶潼 |
+| 函数 | 负责人 |
+| ---- | ------ |
+| UserController/login | 赵汶潼 |
+| BorrowController/borrowBook | 戚翰石 |
+| BorrowController/returnBook | 赵汶潼 |
+### Librarian
+| 函数 | 负责人 |
+| ---- | ------ |
+| BookController/addBookMetaDataInfo | 曹辰彧 |
+| BookController/deleteBookMetaDataInfo| 陈杰 |
+| BookController/updateBookMetaDataInfo | 陈杰 |
+| BookController/queryBookMetaDataInfos | 沈新旸 |
+
+### Admin
+| 函数 | 负责人 |
+| ---- | ------ |
+| UserController/createUser| 赵子谦 |
+| UserController/deleteUser| 董昊炜 |
+| UserController/updateUserStatus | 董昊炜 |
+| UserController/updateUserRole| 戚翰石 |
+| UserController/searchUsersbyname| 汪若溪 |
+| UserController/searchUsersbyaccount| 汪若溪 |
+
+
 				
 				
 				
