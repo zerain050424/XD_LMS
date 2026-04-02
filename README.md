@@ -82,3 +82,15 @@
 - 角色保护删除
 - 图书元数据与实物级联删除
 - 借阅记录与用户/图书实物级联删除
+
+## 函数分配
+### Reader
+| 函数 |负责人 |
+| UserController/login | 赵汶潼 | 
+| BorrowController/borrowBook |戚翰石|
+| BOrrowController/returnBook | 赵汶潼 |
+				
+				
+				
+				
+				
