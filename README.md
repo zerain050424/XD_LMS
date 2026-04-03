@@ -85,69 +85,113 @@
 
 
 ## github协同开发
-## 一、 开发前准备（仅首次操作）
-1. **克隆项目到本地**
-   ```bash
-   git clone https://github.com/zerain050424/XD_LMS.git
-   cd XD_LMS
-   ```
-2. **切换到团队公共开发分支 `dev`**
-   ```bash
-   git checkout dev
-   git pull origin dev
-   ```
-3. **创建个人功能分支**
-   *命名规范：feature-模块名-姓名简拼*
-   ```bash
-   # 示例：git checkout -b feature-Reader-zhangsan
-   git checkout -b feature-你的模块名-你的姓名
-   ```
 ---
+## 一、首次拉取项目（仅做1次）
+### 1. 克隆仓库到本地
+**IDEA 操作**：
+- 打开 IDEA → 点击 `Get from VCS`
+- 输入仓库地址：`https://github.com/zerain050424/XD_LMS.git`
+- 选择本地存储路径 → 点击 `Clone`
 
-## 二、 日常开发流程
-1. **开始编写代码前（同步远程进度）**
-   每天写代码前，先获取 `dev` 分支的最新改动，防止冲突。
-   ```bash
-   git checkout dev
-   git pull origin dev
-   git checkout 你的分支名
-   git merge dev
-   ```
-2. **代码完成后提交到本地**
-   ```bash
-   git add .
-   git commit -m "模块名: 完成xx功能描述"
-   ```
-3. **推送到远程仓库**
-   ```bash
-   git push origin 你的分支名
-   ```
----
-## 三、 提交合并申请（Pull Request）
-1. 打开 [GitHub 仓库页面](https://github.com/zerain050424/XD_LMS)。
-2. 点击 **Pull requests** 选项卡 → 点击 **New pull request**。
-3. **base 分支** 选择：`dev`（切记不要选master）。
-4. **compare 分支** 选择：`你的个人分支`。
-5. 填写标题（例如：完成用户登录模块），点击 **Create pull request**。
-6. 通知组长进行 Code Review（代码审核），审核通过后将合并至 `dev`。
----
+**命令行操作**（IDEA 底部 Terminal 执行）：
+```bash
+git clone https://github.com/zerain050424/XD_LMS.git
+cd XD_LMS
+```
 
-## 四、 提交信息（Commit）规范
-为了方便追踪历史，提交信息请统一格式：
-`模块: 具体做了什么`
-**常见示例：**
-- `user: 完成登录接口调试`
-- `book: 实现图书模糊查询功能`
-- `borrow: 修复借书逻辑中日期计算的 Bug`
----
+### 2. 同步远程分支，拉取 `dev` 分支
+**IDEA 操作**：
+1.  项目打开后，点击顶部菜单 `Git → Fetch`（同步远程所有分支）
+2.  右下角点击当前分支（默认 `master`）→ 展开 `Remote Branches → origin`
+3.  右键 `origin/dev` → 选择 `Checkout as new local branch` → 直接点 `OK`
+4.  点击顶部 `Git → Pull`，拉取 `dev` 分支最新代码
 
-## 五、 分支管理说明
-| 分支类型 | 名称 | 说明 |
-| :--- | :--- | :--- |
-| **主分支** | `master` | 仅存放稳定版本，**严禁直接修改或推送** |
-| **开发分支** | `dev` | 团队合并基准分支，仅通过 PR 合并 |
-| **功能分支** | `feature-xxx` | 个人开发专用，所有代码先在此分支编写 |
+**命令行操作**：
+```bash
+# 同步远程分支信息
+git fetch origin
+# 基于远程dev创建本地dev分支并切换
+git checkout -b dev origin/dev
+# 拉取最新代码
+git pull origin dev
+```
+
+### 3. 创建自己的功能分支
+**IDEA 操作**：
+- 右下角点击 `dev` 分支 → 选择 `New Branch`
+- 分支名严格按规范：`feature-模块名-姓名`（例：`feature-Reader-xiaorunze`）
+- 勾选 `Checkout branch` → 点击 `Create`
+
+**命令行操作**：
+```bash
+# 确保在dev分支上创建
+git checkout dev
+git checkout -b feature-你的模块-你的姓名
+# 示例：git checkout -b feature-user-zhaowentong
+```
+
 ---
+## 二、日常开发流程
+### 1. 开发前：同步最新 `dev` 代码（避免冲突！）
+**IDEA 操作**：
+1.  确认右下角是自己的 `feature` 分支
+2.  点击顶部 `Git → Pull` → 弹出窗口中，`Remote branch to pull` 选择 `origin/dev`
+3.  点击 `Pull`，自动合并最新代码
+
+**命令行操作**：
+```bash
+# 确保在自己的feature分支
+git checkout feature-xxx-xxx
+# 拉取dev最新代码到本地
+git pull origin dev
+```
+
+### 2. 开发代码：写自己负责的接口/功能
+- 只修改自己负责的文件，**绝对不要动别人的代码**
+- 写完代码后，本地测试确保能正常运行、无报错
+
+### 3. 提交代码到本地
+**IDEA 操作**：
+1.  点击右上角绿色 ✅ 按钮（或右键项目 → `Git → Commit Directory`）
+2.  勾选自己修改的文件（不要全选，避免误提交）
+3.  提交信息严格按规范：`模块: 功能描述`（例：`user: 完成登录接口`）
+4.  点击 `Commit`
+
+**命令行操作**：
+```bash
+# 暂存所有修改
+git add .
+# 提交到本地，按规范写提交信息
+git commit -m "user: 完成登录接口"
+```
+
+### 4. 推送自己的分支到远程
+**IDEA 操作**：
+- 点击顶部 `Git → Push` → 确认推送的是自己的 `feature` 分支 → 点击 `Push`
+
+**命令行操作**：
+```bash
+# 推送到远程自己的分支
+git push origin feature-xxx-xxx
+```
+
+---
+## 三、提交 PR（合并到 `dev`，等待组长审核）
+### 1. 发起 Pull Request
+1.  推送成功后，IDEA 会弹出提示，直接点击 `View on GitHub`
+2.  进入 GitHub 仓库页面，自动跳转到 PR 创建页
+3.  确认：
+   - `base` 分支：`dev`（目标分支，绝对不能选 `main`）
+   - `compare` 分支：自己的 `feature` 分支
+4.  填写 PR 信息：
+   - **标题**：`[模块] 完成xx功能`（例：`[User] 完成登录接口开发`）
+   - **内容**：简单说明实现的功能、测试情况（例：`完成登录接口，支持账号密码校验，已本地测试通过`）
+5.  点击 `Create pull request`
+
+### 2. 等待组长审核
+- 组长会审核代码，可能会提修改意见，按要求修改后，重新推送自己的分支即可
+- 代码审核通过后，组长会合并到 `dev` 分支，你的任务完成
+
 
 
 
