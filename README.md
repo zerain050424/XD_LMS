@@ -102,7 +102,7 @@ cd XD_LMS
 ### 2. 同步远程分支，拉取 `dev` 分支
 **IDEA 操作**：
 1.  项目打开后，点击顶部菜单 `Git → Fetch`（同步远程所有分支）
-2.  右下角点击当前分支（默认 `master`）→ 展开 `Remote Branches → origin`
+2.  左上角点击当前分支（默认 `master`）→ 展开 `Remote Branches → origin`
 3.  右键 `origin/dev` → 选择 `Checkout as new local branch` → 直接点 `OK`
 4.  点击顶部 `Git → Pull`，拉取 `dev` 分支最新代码
 
@@ -118,7 +118,7 @@ git pull origin dev
 
 ### 3. 创建自己的功能分支
 **IDEA 操作**：
-- 右下角点击 `dev` 分支 → 选择 `New Branch`
+- 左上角点击 `dev` 分支 → 选择 `New Branch`
 - 分支名严格按规范：`feature-模块名-姓名`（例：`feature-Reader-xiaorunze`）
 - 勾选 `Checkout branch` → 点击 `Create`
 
@@ -134,7 +134,7 @@ git checkout -b feature-你的模块-你的姓名
 ## 二、日常开发流程
 ### 1. 开发前：同步最新 `dev` 代码（避免冲突！）
 **IDEA 操作**：
-1.  确认右下角是自己的 `feature` 分支
+1.  确认左上角是自己的 `feature` 分支
 2.  点击顶部 `Git → Pull` → 弹出窗口中，`Remote branch to pull` 选择 `origin/dev`
 3.  点击 `Pull`，自动合并最新代码
 
@@ -152,7 +152,7 @@ git pull origin dev
 
 ### 3. 提交代码到本地
 **IDEA 操作**：
-1.  点击右上角绿色 ✅ 按钮（或右键项目 → `Git → Commit Directory`）
+1.  点击左上角去提交修改（或右键项目 → `Git → Commit Directory`）
 2.  勾选自己修改的文件（不要全选，避免误提交）
 3.  提交信息严格按规范：`模块: 功能描述`（例：`user: 完成登录接口`）
 4.  点击 `Commit`
