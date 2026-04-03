@@ -83,33 +83,75 @@
 - 图书元数据与实物级联删除
 - 借阅记录与用户/图书实物级联删除
 
-## R1函数分配
 
-### Reader
-| 函数 | 负责人 |
-| ---- | ------ |
-| UserController/login | 赵汶潼 |
-| BookController/queryBookMetaDataInfos | 纪承明 |
-| BorrowController/borrowBook | 戚翰石 |
-| BorrowController/returnBook | 赵汶潼 |
-### Librarian
-| 函数 | 负责人 |
-| ---- | ------ |
-| BookController/addBookMetaDataInfo | 曹辰彧 |
-| BookController/deleteBookMetaDataInfo| 陈杰 |
-| BookController/updateBookMetaDataInfo | 陈杰 |
-| BookController/queryBookMetaDataInfosByStatus | 沈新旸 |
-| BookController/queryBookMetaDataInfosByCategory | 沈新旸 |
+## github协同开发
+```markdown
+---
+## 一、 开发前准备（仅首次操作）
+1. **克隆项目到本地**
+   ```bash
+   git clone https://github.com/zerain050424/XD_LMS.git
+   cd XD_LMS
+   ```
+2. **切换到团队公共开发分支 `dev`**
+   ```bash
+   git checkout dev
+   git pull origin dev
+   ```
+3. **创建个人功能分支**
+   *命名规范：feature-模块名-姓名简拼*
+   ```bash
+   # 示例：git checkout -b feature-Reader-zhangsan
+   git checkout -b feature-你的模块名-你的姓名
+   ```
+---
 
-### Admin
-| 函数 | 负责人 |
-| ---- | ------ |
-| UserController/createUser| 赵子谦 |
-| UserController/deleteUser| 董昊炜 |
-| UserController/updateUserStatus | 董昊炜 |
-| UserController/updateUserRole| 戚翰石 |
-| UserController/searchUsersbyname| 汪若溪 |
-| UserController/searchUsersbyaccount| 汪若溪 |
+## 二、 日常开发流程
+1. **开始编写代码前（同步远程进度）**
+   每天写代码前，先获取 `dev` 分支的最新改动，防止冲突。
+   ```bash
+   git checkout dev
+   git pull origin dev
+   git checkout 你的分支名
+   git merge dev
+   ```
+2. **代码完成后提交到本地**
+   ```bash
+   git add .
+   git commit -m "模块名: 完成xx功能描述"
+   ```
+3. **推送到远程仓库**
+   ```bash
+   git push origin 你的分支名
+   ```
+---
+## 三、 提交合并申请（Pull Request）
+1. 打开 [GitHub 仓库页面](https://github.com/zerain050424/XD_LMS)。
+2. 点击 **Pull requests** 选项卡 → 点击 **New pull request**。
+3. **base 分支** 选择：`dev`（切记不要选master）。
+4. **compare 分支** 选择：`你的个人分支`。
+5. 填写标题（例如：完成用户登录模块），点击 **Create pull request**。
+6. 通知组长进行 Code Review（代码审核），审核通过后将合并至 `dev`。
+---
+
+## 四、 提交信息（Commit）规范
+为了方便追踪历史，提交信息请统一格式：
+`模块: 具体做了什么`
+**常见示例：**
+- `user: 完成登录接口调试`
+- `book: 实现图书模糊查询功能`
+- `borrow: 修复借书逻辑中日期计算的 Bug`
+---
+
+## 五、 分支管理说明
+| 分支类型 | 名称 | 说明 |
+| :--- | :--- | :--- |
+| **主分支** | `master` | 仅存放稳定版本，**严禁直接修改或推送** |
+| **开发分支** | `dev` | 团队合并基准分支，仅通过 PR 合并 |
+| **功能分支** | `feature-xxx` | 个人开发专用，所有代码先在此分支编写 |
+---
+```
+
 
 
 				
