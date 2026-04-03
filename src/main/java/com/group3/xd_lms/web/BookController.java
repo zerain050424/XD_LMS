@@ -26,7 +26,7 @@ public class BookController {
     public HashMap<String, Object> getCount() {
         // 查询所有图书列表 → 取 size 作为总数
         List<BookMetaData> list = bookMetadataMapper.selectAll();
-
+        System.out.println(list);
         if (list == null) {
             return Result.getResultMap(500, "查询失败");
         }
