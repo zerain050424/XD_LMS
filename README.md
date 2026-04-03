@@ -89,6 +89,7 @@
 | 函数 | 负责人 |
 | ---- | ------ |
 | UserController/login | 赵汶潼 |
+| BookController/queryBookMetaDataInfos | 纪承明 |
 | BorrowController/borrowBook | 戚翰石 |
 | BorrowController/returnBook | 赵汶潼 |
 ### Librarian
@@ -97,7 +98,8 @@
 | BookController/addBookMetaDataInfo | 曹辰彧 |
 | BookController/deleteBookMetaDataInfo| 陈杰 |
 | BookController/updateBookMetaDataInfo | 陈杰 |
-| BookController/queryBookMetaDataInfos | 沈新旸 |
+| BookController/queryBookMetaDataInfosByStatus | 沈新旸 |
+| BookController/queryBookMetaDataInfosByCategory | 沈新旸 |
 
 ### Admin
 | 函数 | 负责人 |
