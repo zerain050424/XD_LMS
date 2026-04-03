@@ -17,7 +17,7 @@
     <!-- 新增 -->
     <insert id="insert">
         INSERT INTO users(user_account, password, user_name, email, role_id, status)
-        VALUES (#{username}, #{password}, #{fullName}, #{email}, #{roleId}, #{status})
+        VALUES (#{user_account}, #{password}, #{fullName}, #{email}, #{roleId}, #{status})
     </insert>
 
     <!-- 根据ID更新 -->

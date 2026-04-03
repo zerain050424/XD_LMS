@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.group3.xd_lms.mapper.BookMetaDataMapper">
+
+    <resultMap id="BaseResultMap" type="com.group3.xd_lms.entity.BookMetaData">
+        <id column="isbn" property="isbn"/>
+        <result column="title" property="title"/>
+        <result column="author" property="author"/>
+        <result column="category" property="category"/>
+        <result column="keywords" property="keywords"/>
+        <result column="publisher" property="publisher"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO book_metadata (isbn, title, author, category, keywords, publisher)
+        VALUES (#{isbn}, #{title}, #{author}, #{category}, #{keywords}, #{publisher})
+    </insert>
+
+    <update id="updateByIsbn">
+        UPDATE book_metadata
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="author != null">author = #{author},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="keywords != null">keywords = #{keywords},</if>
+            <if test="publisher != null">publisher = #{publisher}</if>
+        </set>
+        WHERE isbn = #{isbn}
+    </update>
+
+    <delete id="deleteByIsbn">
+        DELETE FROM book_metadata WHERE isbn = #{isbn}
+    </delete>
+
+    <select id="selectByIsbn" resultMap="BaseResultMap">
+        SELECT * FROM book_metadata WHERE isbn = #{isbn}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM book_metadata
+    </select>
+
+    <select id="searchByKeyword" resultMap="BaseResultMap">
+        SELECT * FROM book_metadata
+        WHERE title LIKE CONCAT('%',#{keyword},'%')
+           OR author LIKE CONCAT('%',#{keyword},'%')
+           OR keywords LIKE CONCAT('%',#{keyword},'%')
+    </select>
+
+    <select id="selectByCategory" resultMap="BaseResultMap">
+        SELECT * FROM book_metadata WHERE category = #{category}
+    </select>
+
+    <!-- 多条件综合搜索：ISBN、书名、作者、分类、出版社、关键词 -->
+    <select id="selectBySearch" resultMap="BaseResultMap">
+        SELECT *
+        FROM book_metadata
+        <where>
+            <if test="isbn != null and isbn != ''">
+                and isbn like concat('%',#{isbn},'%')
+            </if>
+            <if test="title != null and title != ''">
+                and title like concat('%',#{title},'%')
+            </if>
+            <if test="author != null and author != ''">
+                and author like concat('%',#{author},'%')
+            </if>
+            <if test="category != null and category != ''">
+                and category like concat('%',#{category},'%')
+            </if>
+            <if test="keywords != null and keywords != ''">
+                and keywords like concat('%',#{keywords},'%')
+            </if>
+            <if test="publisher != null and publisher != ''">
+                and publisher like concat('%',#{publisher},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

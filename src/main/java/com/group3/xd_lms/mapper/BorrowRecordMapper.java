@@ -1,4 +1,42 @@
 package com.group3.xd_lms.mapper;
 
+import com.group3.xd_lms.entity.BorrowRecord;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Mapper
 public interface BorrowRecordMapper {
+
+    // 新增借阅记录（借书）
+    int insert(BorrowRecord borrowRecord);
+
+    // 归还图书：更新归还时间
+    int updateReturnDate(@Param("id") Long id,
+                         @Param("returnDate") String returnDate);
+
+    // 续借：更新应还日期 + 续借次数
+    int updateRenewInfo(@Param("id") Long id,
+                        @Param("dueDate") LocalDateTime dueDate,
+                        @Param("renewCount") Integer renewCount);
+
+    // 根据ID查询借阅记录
+    BorrowRecord selectById(@Param("id") Long id);
+
+    // 查询某个用户的所有借阅记录
+    List<BorrowRecord> selectByUserId(@Param("userId") Long userId);
+
+    // 查询某个用户当前未归还的记录
+    List<BorrowRecord> selectUnreturnedByUserId(@Param("userId") Long userId);
+
+    // 根据 RFID 查询当前未归还的借阅记录（用于还书）
+    BorrowRecord selectUnreturnedByRfid(@Param("rfidTag") String rfidTag);
+
+    // 查询所有逾期未还记录
+    List<BorrowRecord> selectOverdueRecords();
+
+    // 查询所有借阅记录
+    List<BorrowRecord> selectAllRecords();
 }

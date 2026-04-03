@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.group3.xd_lms.mapper.BorrowRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.group3.xd_lms.entity.BorrowRecord">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="rfid_tag" property="rfidTag"/>
+        <result column="borrow_date" property="borrowDate"/>
+        <result column="due_date" property="dueDate"/>
+        <result column="return_date" property="returnDate"/>
+        <result column="renew_count" property="renewCount"/>
+    </resultMap>
+
+    <!-- 新增借阅 -->
+    <insert id="insert">
+        INSERT INTO borrow_records
+            (user_id, rfid_tag, borrow_date, due_date, renew_count)
+        VALUES (#{userId}, #{rfidTag}, #{borrowDate}, #{dueDate}, #{renewCount})
+    </insert>
+
+    <!-- 归还图书 -->
+    <update id="updateReturnDate">
+        UPDATE borrow_records
+        SET return_date = #{returnDate}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 续借 -->
+    <update id="updateRenewInfo">
+        UPDATE borrow_records
+        SET due_date = #{dueDate},
+            renew_count = #{renewCount}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM borrow_records WHERE id = #{id}
+    </select>
+
+    <!-- 用户所有借阅记录 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM borrow_records WHERE user_id = #{userId}
+    </select>
+
+    <!-- 用户未归还记录 -->
+    <select id="selectUnreturnedByUserId" resultMap="BaseResultMap">
+        SELECT * FROM borrow_records
+        WHERE user_id = #{userId} AND return_date IS NULL
+    </select>
+
+    <!-- 根据RFID查未归还记录（还书用） -->
+    <select id="selectUnreturnedByRfid" resultMap="BaseResultMap">
+        SELECT * FROM borrow_records
+        WHERE rfid_tag = #{rfidTag} AND return_date IS NULL
+    </select>
+
+    <!-- 查询所有逾期未还 -->
+    <select id="selectOverdueRecords" resultMap="BaseResultMap">
+        SELECT * FROM borrow_records
+        WHERE return_date IS NULL AND due_date &lt; NOW()
+    </select>
+
+    <select id="selectAllRecords" resultMap="BaseResultMap">
+        SELECT * FROM borrow_records
+    </select>
+
+</mapper>

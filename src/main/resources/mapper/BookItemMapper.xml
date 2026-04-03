@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.group3.xd_lms.mapper.BookItemMapper">
+
+    <resultMap id="BaseResultMap" type="com.group3.xd_lms.entity.BookItem">
+        <id column="rfid_tag" property="rfidTag"/>
+        <result column="isbn" property="isbn"/>
+        <result column="status" property="status"/>
+        <result column="location" property="location"/>
+        <result column="added_at" property="addedAt"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO book_items (rfid_tag, isbn, status, location)
+        VALUES (#{rfidTag}, #{isbn}, #{status}, #{location})
+    </insert>
+
+    <update id="updateByRfidTag">
+        UPDATE book_items
+        <set>
+            <if test="isbn != null">isbn = #{isbn},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="location != null">location = #{location}</if>
+        </set>
+        WHERE rfid_tag = #{rfidTag}
+    </update>
+
+    <delete id="deleteByRfidTag">
+        DELETE FROM book_items WHERE rfid_tag = #{rfidTag}
+    </delete>
+
+    <select id="selectByRfidTag" resultMap="BaseResultMap">
+        SELECT * FROM book_items WHERE rfid_tag = #{rfidTag}
+    </select>
+
+    <select id="selectByIsbn" resultMap="BaseResultMap">
+        SELECT * FROM book_items WHERE isbn = #{isbn}
+    </select>
+
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT * FROM book_items WHERE status = #{status}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE book_items
+        SET status = #{status}
+        WHERE rfid_tag = #{rfidTag}
+    </update>
+
+
+</mapper>

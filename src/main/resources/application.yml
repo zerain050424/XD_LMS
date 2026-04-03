@@ -1,0 +1,30 @@
+# 服务器配置
+server:
+  port: 8080
+  servlet:
+    context-path: /lms
+
+# Spring 配置
+spring:
+  # 数据库连接
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/lms_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234  # 改成你自己的数据库密码
+
+# MyBatis 配置
+mybatis:
+  # 映射文件位置
+  mapper-locations: classpath:mapper/*.xml
+  # 开启 数据库下划线 <-> Java驼峰 自动映射
+  configuration:
+    map-underscore-to-camel-case: true
+  # 别名包扫描
+  type-aliases-package: com.group3.xd_lms.entity
+
+# 日志
+logging:
+  level:
+    com.group3.xd_lms: info
+    com.group3.xd_lms.mapper: debug # 打印SQL语句

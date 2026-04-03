@@ -46,6 +46,7 @@ public class BorrowRecordMapperTest {
 
             // ===================== 核心功能测试 =====================
             // 3. 借书：新增借阅记录
+            userId = userMapper.selectByUserAccount("test_borrow").getId();
             BorrowRecord record = BorrowRecord.builder()
                     .userId(userId)
                     .rfidTag(rfid)
