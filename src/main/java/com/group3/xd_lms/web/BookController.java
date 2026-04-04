@@ -52,10 +52,73 @@ public class BookController {
     public void queryAllBookMetaDataInfos(){
     }
 
-    // TODO R1(Reader) 在数据库中搜索图书信息
+    // R1(Reader) 在数据库中搜索图书信息 - 支持分页与全量查询
     @GetMapping(value = "BookMetaData/queryInfos")
-    public void queryBookMetaDataInfos(){
+    public HashMap<String, Object> queryBookMetaDataInfos(
+            @RequestParam(required = false) String isbn,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer pageNum,
+            @RequestParam(required = false) Integer pageSize) {
         //执行查询图书逻辑
+        try {
+            // 参数清理 - 去除前后空格
+            isbn = isbn != null ? isbn.trim() : null;
+            keyword = keyword != null ? keyword.trim() : null;
+
+            // 参数校验
+            if ((isbn == null || isbn.isEmpty()) && (keyword == null || keyword.isEmpty())) {
+                throw new IllegalArgumentException("请提供ISBN或关键词进行搜索");
+            }
+
+            // 获取所有符合条件的元数据
+            List<BookMetaData> allMetadata;
+            if (isbn != null && !isbn.isEmpty()) {
+                // 按ISBN查询单本
+                BookMetaData singleResult = bookMetadataMapper.selectByIsbn(isbn);
+                allMetadata = singleResult != null ? new java.util.ArrayList<>(java.util.Arrays.asList(singleResult)) : new java.util.ArrayList<>();
+            } else {
+                // 按关键词模糊搜索
+                allMetadata = bookMetadataMapper.searchByKeyword(keyword);
+            }
+
+            // 获取对应的可借阅实物图书
+            List<BookMetaData> availableBooks = new java.util.ArrayList<>();
+            for (BookMetaData metadata : allMetadata) {
+                // 查询该ISBN下所有Available状态的图书
+                List<BookItem> availableItems = bookItemMapper.selectAvailableByIsbn(metadata.getIsbn());
+                if (availableItems != null && !availableItems.isEmpty()) {
+                    availableBooks.add(metadata);
+                }
+            }
+
+            // 处理分页
+            int total = availableBooks.size();
+            List<BookMetaData> result;
+
+            if (pageNum != null && pageSize != null) {
+                // 分页查询模式
+                if (pageNum <= 0 || pageSize <= 0) {
+                    throw new IllegalArgumentException("页码和页大小必须大于0");
+                }
+                int startIndex = (pageNum - 1) * pageSize;
+                int endIndex = Math.min(startIndex + pageSize, total);
+
+                if (startIndex >= total) {
+                    result = new java.util.ArrayList<>();
+                } else {
+                    result = availableBooks.subList(startIndex, endIndex);
+                }
+            } else {
+                // 全量查询模式
+                result = availableBooks;
+            }
+
+            return Result.getListResultMap(200, "查询成功", total, result);
+        } catch (IllegalArgumentException e) {
+            return Result.getResultMap(500, e.getMessage());
+        } catch (Exception e) {
+            return Result.getResultMap(500, "查询图书元数据失败，请稍后重试");
+        }
     }
 
     // TODO R1(Librarian) 在数据库中按状态搜索图书信息
