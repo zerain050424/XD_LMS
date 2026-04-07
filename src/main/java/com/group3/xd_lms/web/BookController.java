@@ -142,5 +142,40 @@ public class BookController {
         List<BookItem> list = bookItemMapper.selectByIsbn(isbn);
         return Result.getListResultMap(200, "查询成功", list.size(), list);
     }
+    // 获取图书详情及实时借阅状态
+    @GetMapping("/borrowingstatus/{isbn}")
+    public HashMap<String, Object> getBorrowingStatus(@PathVariable String isbn) {
+        // 1. 查询图书元数据
+        BookMetaData metadata = bookMetadataMapper.selectByIsbn(isbn);
+        if (metadata == null) {
+            return Result.getResultMap(404, "图书不存在，ISBN: " + isbn);
+        }
+
+        // 2. 查询该 ISBN 下的所有实物书
+        List<BookItem> items = bookItemMapper.selectByIsbn(isbn);
+        int totalCount = items.size();
+
+        // 3. 统计可借数量（利用 BookItem 中的 isAvailable() 方法）
+        long availableCount = items.stream().filter(BookItem::isAvailable).count();
+        boolean available = availableCount > 0;
+        String statusMessage = available ? "可借" : "不可借";
+
+        // 4. 组装返回数据（使用 HashMap，因为你的 Result 工具类支持直接放 data）
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("isbn", metadata.getIsbn());
+        data.put("title", metadata.getTitle());
+        data.put("author", metadata.getAuthor());
+        data.put("category", metadata.getCategory());
+        data.put("keywords", metadata.getKeywords());
+        data.put("publisher", metadata.getPublisher());
+        data.put("available", available);
+        data.put("availableCount", availableCount);
+        data.put("totalCount", totalCount);
+        data.put("statusMessage", statusMessage);
+
+        return Result.getResultMap(200, "查询成功", data);
+    }
 }
+
+
 
