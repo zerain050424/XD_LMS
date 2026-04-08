@@ -27,6 +27,9 @@ public interface BookItemMapper {
     // 按状态查询（可借/丢失等）
     List<BookItem> selectByStatus(@Param("status") String status);
 
+    // 查询某ISBN下所有Available状态的实物
+    List<BookItem> selectAvailableByIsbn(@Param("isbn") String isbn);
+
     // 修改图书状态（上架、下架、丢失等）
     int updateStatus(@Param("rfidTag") String rfidTag, @Param("status") String status);
 
