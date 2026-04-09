@@ -4,12 +4,13 @@ import com.group3.xd_lms.entity.BookMetaData;
 import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BookMetaDataMapper;
 import com.group3.xd_lms.utils.Result;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 @RestController
 @RequestMapping(value = "/book")
@@ -60,13 +61,51 @@ public class BookController {
 
     // TODO R1(Librarian) 在数据库中按状态搜索图书信息
     @GetMapping(value = "BookMetaData/queryStatusInfos")
-    public void queryBookMetaDataInfosByStatus(){
-        //执行按状态查询图书
+    public HashMap<String, Object> queryBookMetaDataInfosByStatus(@RequestParam String status){
+        if (status == null || status.trim().isEmpty()) {
+            return Result.getResultMap(400, "status 不能为空");
+        }
+
+        String normalizedStatus = normalizeBookStatus(status);
+        if (normalizedStatus == null) {
+            return Result.getResultMap(400, "不支持的状态，请使用：Available/Loaned/Lost/Reserved 或 对应中文状态");
+        }
+
+        List<BookItem> items = bookItemMapper.selectByStatus(normalizedStatus);
+        if (items == null || items.isEmpty()) {
+            return Result.getListResultMap(404, "未找到图书", 0, new ArrayList<>());
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (BookItem item : items) {
+            BookMetaData metadata = bookMetadataMapper.selectByIsbn(item.getIsbn());
+            Map<String, Object> row = new HashMap<>();
+            row.put("rfidTag", item.getRfidTag());
+            row.put("isbn", item.getIsbn());
+            row.put("status", item.getStatus());
+            row.put("location", item.getLocation());
+            if (metadata != null) {
+                row.put("title", metadata.getTitle());
+                row.put("author", metadata.getAuthor());
+                row.put("category", metadata.getCategory());
+            }
+            result.add(row);
+        }
+        return Result.getListResultMap(200, "查询成功", result.size(), result);
     }
     // TODO R1(Librarian) 在数据库中按种类搜索图书信息
     @GetMapping(value = "BookMetaData/queryCategoryInfos")
-    public void queryBookMetaDataInfosByCategory(){
-        //执行按种类查询图书
+    public HashMap<String, Object> queryBookMetaDataInfosByCategory(@RequestParam String category){
+        if (category == null || category.trim().isEmpty()) {
+            return Result.getResultMap(400, "category 不能为空");
+        }
+
+        List<BookMetaData> list = bookMetadataMapper.selectByCategory(category.trim());
+        if (list == null || list.isEmpty()) {
+            return Result.getListResultMap(404, "未找到图书", 0, new ArrayList<>());
+        }
+
+        return Result.getListResultMap(200, "查询成功", list.size(), list);
     }
 
     // TODO R1(Librarian) 向数据库中添加图书信息
@@ -141,6 +180,23 @@ public class BookController {
         }
         List<BookItem> list = bookItemMapper.selectByIsbn(isbn);
         return Result.getListResultMap(200, "查询成功", list.size(), list);
+    }
+
+    private String normalizeBookStatus(String inputStatus) {
+        String value = inputStatus.trim().toLowerCase(Locale.ROOT);
+        if ("在馆".equals(value) || "available".equals(value)) {
+            return "Available";
+        }
+        if ("已借出".equals(value) || "checked out".equals(value) || "loaned".equals(value)) {
+            return "Loaned";
+        }
+        if ("遗失".equals(value) || "丢失".equals(value) || "lost".equals(value)) {
+            return "Lost";
+        }
+        if ("预约".equals(value) || "预约中".equals(value) || "reserved".equals(value)) {
+            return "Reserved";
+        }
+        return null;
     }
 }
 
