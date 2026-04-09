@@ -2,10 +2,18 @@ package com.group3.xd_lms.web;
 import com.group3.xd_lms.entity.User;
 import com.group3.xd_lms.mapper.UserMapper;
 import com.group3.xd_lms.utils.Result;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,6 +23,7 @@ import java.util.Map;
 @RequestMapping("/users")
 public class UserController {
     private final UserMapper userMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public UserController(UserMapper userMapper) {
         this.userMapper = userMapper;
@@ -28,7 +37,90 @@ public class UserController {
     @PostMapping("/login")
     // TODO R1(Reader) 实现登录逻辑：校验账号密码
     public void login() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
+        HttpServletRequest request = attributes.getRequest();
+        HttpServletResponse response = attributes.getResponse();
+        if (response == null) {
+            return;
+        }
+
+        String userAccount = request.getParameter("userAccount");
+        if (userAccount == null || userAccount.trim().isEmpty()) {
+            userAccount = request.getParameter("user_account");
+        }
+        if (userAccount == null || userAccount.trim().isEmpty()) {
+            userAccount = request.getParameter("studentId");
+        }
+        if (userAccount == null || userAccount.trim().isEmpty()) {
+            userAccount = request.getParameter("staffId");
+        }
+        String password = request.getParameter("password");
+
+        HashMap<String, Object> result;
+        if (userAccount == null || userAccount.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+            result = Result.getResultMap(400, "账号或密码不能为空");
+            writeJson(response, result);
+            return;
+        }
+
+        User user = userMapper.selectByUserAccount(userAccount.trim());
+        if (user == null) {
+            result = Result.getResultMap(404, "用户不存在");
+            writeJson(response, result);
+            return;
+        }
+        if (!User.UserStatus.Active.equals(user.getStatus())) {
+            result = Result.getResultMap(403, "账号已禁用");
+            writeJson(response, result);
+            return;
+        }
+        if (!password.equals(user.getPassword())) {
+            result = Result.getResultMap(401, "账号或密码错误");
+            writeJson(response, result);
+            return;
+        }
+
+        HttpSession session = request.getSession();
+        session.setAttribute("userId", user.getId());
+        session.setAttribute("userRoleId", user.getRoleId());
+        session.setAttribute("userAccount", user.getUser_account());
+
+        List<String> permissions = resolvePermissions(user.getRoleId());
+        session.setAttribute("permissions", permissions);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", user.getId());
+        data.put("userAccount", user.getUser_account());
+        data.put("userName", user.getFullName());
+        data.put("roleId", user.getRoleId());
+        data.put("permissions", permissions);
+
+        result = Result.getResultMap(200, "登录成功", data);
+        writeJson(response, result);
         // 执行登录逻辑
+    }
+
+    private void writeJson(HttpServletResponse response, HashMap<String, Object> payload) {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
+        try {
+            response.getWriter().write(objectMapper.writeValueAsString(payload));
+            response.getWriter().flush();
+        } catch (IOException ignored) {
+        }
+    }
+
+    private List<String> resolvePermissions(Integer roleId) {
+        if (Integer.valueOf(1).equals(roleId)) {
+            return Arrays.asList("USER_MANAGE", "BOOK_MANAGE", "BORROW_MANAGE");
+        }
+        if (Integer.valueOf(2).equals(roleId)) {
+            return Arrays.asList("BOOK_MANAGE", "BORROW_MANAGE");
+        }
+        return Arrays.asList("BOOK_QUERY", "BOOK_BORROW", "BOOK_RETURN", "PROFILE");
     }
 
 
