@@ -1,5 +1,6 @@
 package com.group3.xd_lms.mapper;
 
+import com.group3.xd_lms.dto.BookStatusDTO;
 import com.group3.xd_lms.entity.BookItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -32,5 +33,14 @@ public interface BookItemMapper {
 
     // 修改图书状态（上架、下架、丢失等）
     int updateStatus(@Param("rfidTag") String rfidTag, @Param("status") String status);
+
+    // 按类别或状态检索图书，支持模糊搜索和排序
+    List<BookStatusDTO> queryBookStatus(
+            @Param("category") String category,
+            @Param("status") String status,
+            @Param("keyword") String keyword,
+            @Param("sortBy") String sortBy,
+            @Param("sortOrder") String sortOrder
+    );
 
 }

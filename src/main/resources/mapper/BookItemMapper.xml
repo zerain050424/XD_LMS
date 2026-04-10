@@ -52,5 +52,56 @@
         WHERE rfid_tag = #{rfidTag}
     </update>
 
+    <resultMap id="BookStatusDTOResultMap" type="com.group3.xd_lms.dto.BookStatusDTO">
+        <result column="rfid_tag" property="rfidTag"/>
+        <result column="isbn" property="isbn"/>
+        <result column="title" property="title"/>
+        <result column="author" property="author"/>
+        <result column="category" property="category"/>
+        <result column="status" property="status"/>
+        <result column="location" property="location"/>
+    </resultMap>
+
+    <select id="queryBookStatus" resultMap="BookStatusDTOResultMap">
+        SELECT
+            bi.rfid_tag,
+            bi.isbn,
+            bm.title,
+            bm.author,
+            bm.category,
+            bi.status,
+            bi.location
+        FROM book_items bi
+        INNER JOIN book_metadata bm ON bi.isbn = bm.isbn
+        <where>
+            1=1
+            <if test="category != null and category != ''">
+                AND bm.category LIKE CONCAT('%', #{category}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND bi.status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (bm.category LIKE CONCAT('%', #{keyword}, '%')
+                     OR bm.title LIKE CONCAT('%', #{keyword}, '%')
+                     OR bm.author LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        <choose>
+            <when test="sortBy != null and sortBy != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortBy == 'title'">bm.title</when>
+                    <when test="sortBy == 'status'">bi.status</when>
+                    <otherwise>bm.title</otherwise>
+                </choose>
+                <if test="sortOrder != null and sortOrder == 'desc'">DESC</if>
+                <if test="sortOrder == null or sortOrder != 'desc'">ASC</if>
+            </when>
+            <otherwise>
+                ORDER BY bm.title ASC
+            </otherwise>
+        </choose>
+    </select>
 
 </mapper>
