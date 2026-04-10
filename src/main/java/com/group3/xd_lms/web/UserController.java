@@ -118,8 +118,28 @@ public class UserController {
 
     @PutMapping("/{id}")
     // TODO R1(Admin) 根据 ID更新用户信息
-    public void updateUser() {
-        // 管理员修改用户信息
+    public Map<String, Object> updateUser(@PathVariable("id") Long id,
+                                          @RequestBody User newUser) {
+        User oldUser = userMapper.selectById(id);
+        if (oldUser == null) {
+            return Result.getResultMap(500,"查询用户失败");
+        }
+        if (newUser == null) {
+            return Result.getResultMap(500,"缺少更新后的用户信息");
+        }
+        if (newUser.getId() != oldUser.getId()) {
+            return Result.getResultMap(500,"更新后的用户ID与原用户ID不匹配");
+        }
+        // 更新除ID外的所有用户信息
+        oldUser.setRoleId(newUser.getRoleId());
+        oldUser.setPassword(newUser.getPassword());
+        oldUser.setEmail(newUser.getEmail());
+        oldUser.setStatus(newUser.getStatus());
+        oldUser.setFullName(newUser.getFullName());
+        oldUser.setCreatedAt(newUser.getCreatedAt());
+
+        int rows = userMapper.updateById(oldUser);
+        return Result.getResultMap(200,"更新用户信息成功");
     }
 
     @DeleteMapping("/{id}")
@@ -136,8 +156,25 @@ public class UserController {
 
     @PatchMapping("/{id}/role")
     // TODO R1(Admin) 修改角色权限
-    public void updateUserRole() {
+    public Map<String, Object> updateUserRole(@PathVariable("id") Long id,               // 1. 获取URL中的ID
+                                              @RequestBody Map<String, Integer> params) {
         // 调整用户权限角色（如reader升级为librarian/admin）
+        // 从 Map 中提取新角色
+        Integer newRoleId = params.get("role");
+
+        if (newRoleId == null) {
+            return Result.getResultMap(500,"缺少角色参数");
+        }
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            return Result.getResultMap(500,"查询用户失败");
+        }
+
+        System.out.println("正在将用户 " + id + " 的角色修改为: " + newRoleId);
+        user.setRoleId(newRoleId);
+        int rows = userMapper.updateById(user);
+
+        return Result.getResultMap(200,"更新用户角色成功");
     }
 
     // TODO R1(Admin) 通过账号或者用户姓名搜索用户
