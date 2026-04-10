@@ -6,13 +6,23 @@ import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BorrowRecordMapper;
 import com.group3.xd_lms.mapper.UserMapper;
 import com.group3.xd_lms.utils.Result;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +31,11 @@ import java.util.Map;
 public class BorrowController {
     // 注入Mapper
     private final BorrowRecordMapper borrowRecordMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final DateTimeFormatter DB_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    @Autowired
+    private BookItemMapper bookItemMapper;
     private final BookItemMapper bookItemMapper;
     private final UserMapper userMapper;
 
@@ -71,12 +86,95 @@ public class BorrowController {
     @RequestMapping(value = {"/returnBook", "/reader/returnBook"})
     @Transactional
     public void returnBook(){
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
+        HttpServletRequest request = attributes.getRequest();
+        HttpServletResponse response = attributes.getResponse();
+        if (response == null) {
+            return;
+        }
+
+        String rfidTag = request.getParameter("rfidTag");
+        if (rfidTag == null || rfidTag.trim().isEmpty()) {
+            rfidTag = request.getParameter("rfid");
+        }
+
+        HashMap<String, Object> result;
+        if (rfidTag == null || rfidTag.trim().isEmpty()) {
+            result = Result.getResultMap(400, "RFID不能为空");
+            writeJson(response, result);
+            return;
+        }
+
+        rfidTag = rfidTag.trim();
+        BorrowRecord record = borrowRecordMapper.selectUnreturnedByRfid(rfidTag);
+        if (record == null) {
+            result = Result.getResultMap(404, "未查询到该图书的借阅记录");
+            writeJson(response, result);
+            return;
+        }
+
+        String userIdParam = request.getParameter("userId");
+        if (userIdParam != null && !userIdParam.trim().isEmpty()) {
+            try {
+                Long userId = Long.parseLong(userIdParam.trim());
+                if (!userId.equals(record.getUserId())) {
+                    result = Result.getResultMap(403, "当前用户无权归还该图书");
+                    writeJson(response, result);
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                result = Result.getResultMap(400, "userId格式错误");
+                writeJson(response, result);
+                return;
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        int updatedRecord = borrowRecordMapper.updateReturnDate(record.getId(), now.format(DB_DATE_TIME_FORMATTER));
+        if (updatedRecord <= 0) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            result = Result.getResultMap(500, "还书失败：借阅记录更新失败");
+            writeJson(response, result);
+            return;
+        }
+
+        int updatedBook = bookItemMapper.updateStatus(rfidTag, BookItem.BookStatus.Available.name());
+        if (updatedBook <= 0) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            result = Result.getResultMap(500, "还书失败：图书状态更新失败");
+            writeJson(response, result);
+            return;
+        }
+
+        BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
+        Map<String, Object> data = new HashMap<>();
+        data.put("recordId", record.getId());
+        data.put("userId", record.getUserId());
+        data.put("rfidTag", rfidTag);
+        data.put("returnTime", now);
+        data.put("book", bookItem);
+
+        result = Result.getResultMap(200, "还书成功", data);
+        writeJson(response, result);
         //通过扫描RFID码进行还书
     }
 
     /**
      * 1. 查询所有借阅记录
      */
+    private void writeJson(HttpServletResponse response, HashMap<String, Object> payload) {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
+        try {
+            response.getWriter().write(objectMapper.writeValueAsString(payload));
+            response.getWriter().flush();
+        } catch (IOException ignored) {
+        }
+    }
+
     @GetMapping("/getAllRecords")
     public Map<String, Object> getAllRecords() {
         List<BorrowRecord> list = borrowRecordMapper.selectAllRecords();
