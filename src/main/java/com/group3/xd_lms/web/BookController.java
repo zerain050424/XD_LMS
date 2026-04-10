@@ -4,9 +4,15 @@ import com.group3.xd_lms.entity.BookMetaData;
 import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BookMetaDataMapper;
 import com.group3.xd_lms.utils.Result;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +22,7 @@ import java.util.Map;
 public class BookController {
     private final BookItemMapper bookItemMapper;
     private final BookMetaDataMapper bookMetadataMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     public BookController(BookItemMapper bookItemMapper,BookMetaDataMapper bookMetadataMapper) {
         this.bookItemMapper = bookItemMapper;
         this.bookMetadataMapper = bookMetadataMapper;
@@ -135,6 +142,49 @@ public class BookController {
     // TODO R1(Librarian) 向数据库中添加图书信息
     @PostMapping(value = "BookMeTaData/addInfos")
     public void addBookMetaDataInfo(){
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
+        HttpServletRequest request = attributes.getRequest();
+        HttpServletResponse response = attributes.getResponse();
+        if (response == null) {
+            return;
+        }
+
+        String isbn = request.getParameter("isbn");
+        String title = request.getParameter("title");
+        String author = request.getParameter("author");
+        String category = request.getParameter("category");
+        String keywords = request.getParameter("keywords");
+        String publisher = request.getParameter("publisher");
+
+        if (isbn == null || isbn.trim().isEmpty() || title == null || title.trim().isEmpty()) {
+            writeJson(response, Result.getResultMap(400, "isbn/title不能为空"));
+            return;
+        }
+
+        isbn = isbn.trim();
+        title = title.trim();
+        if (bookMetadataMapper.selectByIsbn(isbn) != null) {
+            writeJson(response, Result.getResultMap(409, "该ISBN已存在"));
+            return;
+        }
+
+        BookMetaData bookMetaData = new BookMetaData();
+        bookMetaData.setIsbn(isbn);
+        bookMetaData.setTitle(title);
+        bookMetaData.setAuthor(author);
+        bookMetaData.setCategory(category);
+        bookMetaData.setKeywords(keywords);
+        bookMetaData.setPublisher(publisher);
+
+        int rows = bookMetadataMapper.insert(bookMetaData);
+        if (rows > 0) {
+            writeJson(response, Result.getResultMap(200, "添加成功", bookMetaData));
+            return;
+        }
+        writeJson(response, Result.getResultMap(500, "添加失败"));
         //执行添加新图书逻辑
     }
 
@@ -237,6 +287,16 @@ public class BookController {
         data.put("statusMessage", statusMessage);
 
         return Result.getResultMap(200, "查询成功", data);
+    }
+
+    private void writeJson(HttpServletResponse response, HashMap<String, Object> payload) {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
+        try {
+            response.getWriter().write(objectMapper.writeValueAsString(payload));
+            response.getWriter().flush();
+        } catch (IOException ignored) {
+        }
     }
 }
 
