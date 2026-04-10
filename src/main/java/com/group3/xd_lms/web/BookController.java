@@ -44,22 +44,13 @@ public class BookController {
 
     // ==========================================
     // 1. 管理图书元数据
-    // ==========================================
-
-    // ==========================================
-    // Librarian:
-    // R1 Target Function:
-    // 录入新书基本信息到数据库
-    // 修改已有图书信息信息或移除陈旧书籍
-    // 检索图书
-    // ==========================================
-
-    // 查询所有图书信息
-    @GetMapping(value = "BookMetaData/queryAll")
-    public void queryAllBookMetaDataInfos(){
+    // ==========================================// 查询所有图书信息
+    public HashMap<String, Object> queryAllBookMetaDataInfos() {
+        List<BookMetaData> dataList = bookMetadataMapper.selectAll();
+        return Result.getListResultMap(200, "查询成功", dataList.size(), dataList);
     }
 
-    // R1(Reader) 在数据库中搜索图书信息 - 支持分页与全量查询
+    //在数据库中搜索图书信息 - 支持分页与全量查询
     @GetMapping(value = "BookMetaData/queryInfos")
     public HashMap<String, Object> queryBookMetaDataInfos(
             @RequestParam(required = false) String isbn,
@@ -128,49 +119,45 @@ public class BookController {
         }
     }
 
-    // TODO R1(Librarian) 在数据库中按状态搜索图书信息
+    //在数据库中按状态搜索图书信息
     @GetMapping(value = "BookMetaData/queryStatusInfos")
-    public void queryBookMetaDataInfosByStatus(){
-        //执行按状态查询图书
+    public HashMap<String, Object> queryBookMetaDataInfosByKeyword(@RequestParam String keyword) {
+        List<BookMetaData> bookList = bookMetadataMapper.searchByKeyword("%" + keyword + "%");
+        return Result.getListResultMap(200, "查询成功", bookList.size(), bookList);
     }
-    // TODO R1(Librarian) 在数据库中按种类搜索图书信息
+
+
+    //在数据库中按种类搜索图书信息
     @GetMapping(value = "BookMetaData/queryCategoryInfos")
-    public void queryBookMetaDataInfosByCategory(){
-        //执行按种类查询图书
+    public HashMap<String, Object> queryBookMetaDataInfosByCategory(@RequestParam String category) {
+        List<BookMetaData> bookList = bookMetadataMapper.selectByCategory(category);
+        return Result.getListResultMap(200, "查询成功", bookList.size(), bookList);
     }
 
-    // TODO R1(Librarian) 向数据库中添加图书信息
+    //向数据库中添加图书信息
     @PostMapping(value = "BookMeTaData/addInfos")
-    public void addBookMetaDataInfo(){
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            return;
-        }
-        HttpServletRequest request = attributes.getRequest();
-        HttpServletResponse response = attributes.getResponse();
-        if (response == null) {
-            return;
-        }
+    public HashMap<String, Object> addBookMetaDataInfo(
+            @RequestParam String isbn,
+            @RequestParam String title,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) String publisher) {
 
-        String isbn = request.getParameter("isbn");
-        String title = request.getParameter("title");
-        String author = request.getParameter("author");
-        String category = request.getParameter("category");
-        String keywords = request.getParameter("keywords");
-        String publisher = request.getParameter("publisher");
-
-        if (isbn == null || isbn.trim().isEmpty() || title == null || title.trim().isEmpty()) {
-            writeJson(response, Result.getResultMap(400, "isbn/title不能为空"));
-            return;
-        }
-
+        // 1. 参数校验（去除首尾空格）
         isbn = isbn.trim();
         title = title.trim();
-        if (bookMetadataMapper.selectByIsbn(isbn) != null) {
-            writeJson(response, Result.getResultMap(409, "该ISBN已存在"));
-            return;
+
+        if (isbn.isEmpty() || title.isEmpty()) {
+            return Result.getResultMap(400, "isbn/title不能为空");
         }
 
+        // 2. 查重
+        if (bookMetadataMapper.selectByIsbn(isbn) != null) {
+            return Result.getResultMap(409, "该ISBN已存在");
+        }
+
+        // 3. 封装对象
         BookMetaData bookMetaData = new BookMetaData();
         bookMetaData.setIsbn(isbn);
         bookMetaData.setTitle(title);
@@ -179,25 +166,51 @@ public class BookController {
         bookMetaData.setKeywords(keywords);
         bookMetaData.setPublisher(publisher);
 
+        // 4. 执行插入
         int rows = bookMetadataMapper.insert(bookMetaData);
         if (rows > 0) {
-            writeJson(response, Result.getResultMap(200, "添加成功", bookMetaData));
-            return;
+            return Result.getResultMap(200, "添加成功", bookMetaData);
         }
-        writeJson(response, Result.getResultMap(500, "添加失败"));
-        //执行添加新图书逻辑
+        return Result.getResultMap(500, "添加失败");
     }
 
-    //TODO R1(Librarian) 从数据库中删除图书
+    //从数据库中删除图书
     @DeleteMapping(value = "BookMetaData/deleteInfos")
-    public void deleteBookMetaDataInfo(){
-        // 执行删除图书信息
+    public HashMap<String, Object> deleteBookMetaDataInfo(@RequestParam String isbn) {
+        int rows = bookMetadataMapper.deleteByIsbn(isbn);
+        if (rows > 0) {
+            return Result.getResultMap(200, "删除成功");
+        } else {
+            return Result.getResultMap(500, "删除失败，图书可能不存在");
+        }
     }
 
-    //TODO R1(Librarian) 修改已有图书信息
+    //修改已有图书信息
     @PutMapping(value = "BookMetaData/updateInfos")
-    public void updateBookMetaDataInfo(){
-        // 执行修改图书信息逻辑
+    public HashMap<String, Object> updateBookMetaDataInfo(
+            @RequestParam String isbn,
+            @RequestParam String title,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) String publisher) {
+
+        // 1. 封装对象
+        BookMetaData bookMetaData = new BookMetaData();
+        bookMetaData.setIsbn(isbn);
+        bookMetaData.setTitle(title);
+        bookMetaData.setAuthor(author);
+        bookMetaData.setCategory(category);
+        bookMetaData.setKeywords(keywords);
+        bookMetaData.setPublisher(publisher);
+
+        // 2. 执行更新
+        int rows = bookMetadataMapper.updateByIsbn(bookMetaData);
+        if (rows > 0) {
+            return Result.getResultMap(200, "更新成功", bookMetaData);
+        } else {
+            return Result.getResultMap(500, "更新失败，图书可能不存在");
+        }
     }
 
     // ==========================================
@@ -246,7 +259,7 @@ public class BookController {
                 Result.getResultMap(404, "未找到");
     }
 
-    // 根据ISBN查询（补充接口）
+    // 根据ISBN查询
     @GetMapping("BookItem/getByIsbn")
     public HashMap<String, Object> getByIsbn(@RequestParam String isbn) {
         if (isbn == null || isbn.isEmpty()) {
@@ -289,15 +302,6 @@ public class BookController {
         return Result.getResultMap(200, "查询成功", data);
     }
 
-    private void writeJson(HttpServletResponse response, HashMap<String, Object> payload) {
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json;charset=UTF-8");
-        try {
-            response.getWriter().write(objectMapper.writeValueAsString(payload));
-            response.getWriter().flush();
-        } catch (IOException ignored) {
-        }
-    }
 }
 
 
