@@ -1,4 +1,5 @@
 package com.group3.xd_lms.web;
+
 import com.group3.xd_lms.entity.BookItem;
 import com.group3.xd_lms.entity.BorrowRecord;
 import com.group3.xd_lms.entity.User;
@@ -6,22 +7,12 @@ import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BorrowRecordMapper;
 import com.group3.xd_lms.mapper.UserMapper;
 import com.group3.xd_lms.utils.Result;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,13 +20,11 @@ import java.util.Map;
 @RestController
 @RequestMapping(value = "/borrow")
 public class BorrowController {
-    // 注入Mapper
-    private final BorrowRecordMapper borrowRecordMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private static final DateTimeFormatter DB_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Autowired
-    private BookItemMapper bookItemMapper;
+    private final BorrowRecordMapper borrowRecordMapper;
     private final BookItemMapper bookItemMapper;
     private final UserMapper userMapper;
 
@@ -44,29 +33,30 @@ public class BorrowController {
         this.bookItemMapper = bookItemMapper;
         this.userMapper = userMapper;
     }
-    // ==========================================
-    // 1. Reader:
-    // R1 Target Function:
-    // 扫描RFID借书
-    // 扫描RFID还书
-    // ==========================================
 
-    // 借书
-    // TODO R1(Reader) 接收RFID码和用户信息，进行借书
-    @RequestMapping(value = {"/borrowBook", "/reader/borrowBook"})
+    /**
+     * 借书接口
+     * URL: POST /borrow/borrowBook 或 /borrow/reader/borrowBook
+     * 功能：根据RFID和用户ID创建借阅记录，更新图书状态为已借出
+     *
+     * @param rfidTag 图书RFID标签
+     * @param userId  借阅用户ID
+     * @return 借阅结果（成功/失败原因）
+     */
+    @RequestMapping(value = {"/borrowBook", "/reader/borrowBook"}, method = RequestMethod.POST)
     @Transactional
-    public Map<String, Object> borrowBook(@RequestParam String rfidTag,@RequestParam Long userId){
-        //扫描RFID码进行借书
+    public Map<String, Object> borrowBook(@RequestParam String rfidTag, @RequestParam Long userId) {
+        // 扫描RFID码进行借书
 
         BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
         User user = userMapper.selectById(userId);
-        if(bookItem == null){ // 未找到书目
-            return Result.getResultMap(500,"查询书籍失败");
+        if (bookItem == null) { // 未找到书目
+            return Result.getResultMap(500, "查询书籍失败");
         }
-        if(user == null){
-            return Result.getResultMap(500,"查询用户失败");
+        if (user == null) {
+            return Result.getResultMap(500, "查询用户失败");
         }
-        if(bookItem.isAvailable()){
+        if (bookItem.isAvailable()) {
             BorrowRecord borrowRecord = new BorrowRecord();
             borrowRecord.setUserId(userId);
             borrowRecord.setRfidTag(rfidTag);
@@ -75,80 +65,66 @@ public class BorrowController {
             borrowRecord.setUser(user);
             bookItem.setStatus(BookItem.BookStatus.Loaned);
             borrowRecordMapper.insert(borrowRecord);
-            return Result.getResultMap(200,"借阅成功");
-        }else {
-            return Result.getResultMap(200,"书籍不可借，借阅失败");
+            return Result.getResultMap(200, "借阅成功");
+        } else {
+            return Result.getResultMap(200, "书籍不可借，借阅失败");
         }
     }
 
-    // 还书
-    // TODO R1(Reader) 接收RFID码和用户信息，进行还书
-    @RequestMapping(value = {"/returnBook", "/reader/returnBook"})
-    @Transactional
-    public void returnBook(){
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            return;
-        }
-        HttpServletRequest request = attributes.getRequest();
-        HttpServletResponse response = attributes.getResponse();
-        if (response == null) {
-            return;
-        }
+    /**
+     * 还书接口
+     * URL: POST /borrow/returnBook 或 /borrow/reader/returnBook
+     * 功能：根据RFID更新借阅记录为已归还，更新图书状态为在馆
+     *
+     * @param rfidTag 图书RFID标签
+     * @param userId  可选，当前操作用户ID（用于权限校验）
+     * @return 还书结果（成功/失败原因）
+     */
+    @RequestMapping(value = {"/returnBook", "/reader/returnBook"}, method = RequestMethod.POST)
+    @Transactional(rollbackFor = Exception.class)
+    public HashMap<String, Object> returnBook(
+            @RequestParam String rfidTag,
+            @RequestParam(required = false) Long userId) {
 
-        String rfidTag = request.getParameter("rfidTag");
+        // 1. 参数校验 (rfidTag 必填，userId 选填)
         if (rfidTag == null || rfidTag.trim().isEmpty()) {
-            rfidTag = request.getParameter("rfid");
+            return Result.getResultMap(400, "RFID不能为空");
         }
-
-        HashMap<String, Object> result;
-        if (rfidTag == null || rfidTag.trim().isEmpty()) {
-            result = Result.getResultMap(400, "RFID不能为空");
-            writeJson(response, result);
-            return;
-        }
-
         rfidTag = rfidTag.trim();
+
+        // 2. 查询未归还的记录
         BorrowRecord record = borrowRecordMapper.selectUnreturnedByRfid(rfidTag);
         if (record == null) {
-            result = Result.getResultMap(404, "未查询到该图书的借阅记录");
-            writeJson(response, result);
-            return;
+            return Result.getResultMap(404, "未查询到该图书的借阅记录");
         }
 
-        String userIdParam = request.getParameter("userId");
-        if (userIdParam != null && !userIdParam.trim().isEmpty()) {
-            try {
-                Long userId = Long.parseLong(userIdParam.trim());
-                if (!userId.equals(record.getUserId())) {
-                    result = Result.getResultMap(403, "当前用户无权归还该图书");
-                    writeJson(response, result);
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                result = Result.getResultMap(400, "userId格式错误");
-                writeJson(response, result);
-                return;
+        // 3. 权限校验 (如果传入了 userId，则校验是否匹配)
+        if (userId != null) {
+            if (!userId.equals(record.getUserId())) {
+                return Result.getResultMap(403, "当前用户无权归还该图书");
             }
         }
 
+        // 4. 执行还书逻辑
         LocalDateTime now = LocalDateTime.now();
-        int updatedRecord = borrowRecordMapper.updateReturnDate(record.getId(), now.format(DB_DATE_TIME_FORMATTER));
+
+        // 4.1 更新借阅记录状态
+        // 注意：这里假设你的 Mapper 接受 String 类型的日期，如果接受 LocalDateTime 可直接传 now
+        String dateStr = now.format(DB_DATE_TIME_FORMATTER);
+        int updatedRecord = borrowRecordMapper.updateReturnDate(record.getId(), dateStr);
         if (updatedRecord <= 0) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            result = Result.getResultMap(500, "还书失败：借阅记录更新失败");
-            writeJson(response, result);
-            return;
+            // 抛出异常触发事务回滚
+            throw new RuntimeException("还书失败：借阅记录更新失败");
         }
 
+        // 4.2 更新图书状态为“在馆”
         int updatedBook = bookItemMapper.updateStatus(rfidTag, BookItem.BookStatus.Available.name());
         if (updatedBook <= 0) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            result = Result.getResultMap(500, "还书失败：图书状态更新失败");
-            writeJson(response, result);
-            return;
+            // 抛出异常触发事务回滚
+            throw new RuntimeException("还书失败：图书状态更新失败");
         }
 
+        // 5. 组装返回数据
         BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
         Map<String, Object> data = new HashMap<>();
         data.put("recordId", record.getId());
@@ -157,24 +133,16 @@ public class BorrowController {
         data.put("returnTime", now);
         data.put("book", bookItem);
 
-        result = Result.getResultMap(200, "还书成功", data);
-        writeJson(response, result);
-        //通过扫描RFID码进行还书
+        return Result.getResultMap(200, "还书成功", data);
     }
 
     /**
-     * 1. 查询所有借阅记录
+     * 查询所有借阅记录
+     * URL: GET /borrow/getAllRecords
+     * 功能：获取系统中所有借阅记录的列表
+     *
+     * @return 借阅记录列表
      */
-    private void writeJson(HttpServletResponse response, HashMap<String, Object> payload) {
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json;charset=UTF-8");
-        try {
-            response.getWriter().write(objectMapper.writeValueAsString(payload));
-            response.getWriter().flush();
-        } catch (IOException ignored) {
-        }
-    }
-
     @GetMapping("/getAllRecords")
     public Map<String, Object> getAllRecords() {
         List<BorrowRecord> list = borrowRecordMapper.selectAllRecords();
@@ -185,7 +153,12 @@ public class BorrowController {
     }
 
     /**
-     * 2. 根据用户ID查询借阅记录
+     * 根据用户ID查询借阅记录
+     * URL: GET /borrow/getRecordsByUserId
+     * 功能：获取指定用户的所有借阅记录
+     *
+     * @param userId 用户ID
+     * @return 该用户的借阅记录列表
      */
     @GetMapping("/getRecordsByUserId")
     public Map<String, Object> getRecordsByUserId(@RequestParam Long userId) {
@@ -203,7 +176,12 @@ public class BorrowController {
     }
 
     /**
-     * 3. 根据RFID查询借阅记录
+     * 根据RFID查询借阅记录
+     * URL: GET /borrow/getRecordByRfid
+     * 功能：获取指定RFID图书的当前未归还借阅记录
+     *
+     * @param rfidTag 图书RFID标签
+     * @return 该图书的借阅记录
      */
     @GetMapping("/getRecordByRfid")
     public Map<String, Object> getRecordByRfid(@RequestParam String rfidTag) {
@@ -220,8 +198,13 @@ public class BorrowController {
         return Result.getResultMap(200, "查询成功", record);
     }
 
+
     /**
-     * 4. 获取借阅总数量
+     * 获取借阅总数量
+     * URL: GET /borrow/getTotalCount
+     * 功能：统计系统中所有借阅记录的总数
+     *
+     * @return 借阅记录总数
      */
     @GetMapping("/getTotalCount")
     public Map<String, Object> getTotalCount() {
@@ -231,7 +214,11 @@ public class BorrowController {
     }
 
     /**
-     * 5. 获取逾期记录总数
+     * 获取逾期记录总数
+     * URL: GET /borrow/getOverdueCount
+     * 功能：统计当前所有逾期未归还的借阅记录数量
+     *
+     * @return 逾期记录总数
      */
     @GetMapping("/getOverdueCount")
     public Map<String, Object> getOverdueCount() {

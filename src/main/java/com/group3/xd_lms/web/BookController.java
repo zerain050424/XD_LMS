@@ -1,34 +1,38 @@
 package com.group3.xd_lms.web;
+
 import com.group3.xd_lms.entity.BookItem;
 import com.group3.xd_lms.entity.BookMetaData;
 import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BookMetaDataMapper;
 import com.group3.xd_lms.utils.Result;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/book")
 public class BookController {
+    @Autowired
     private final BookItemMapper bookItemMapper;
     private final BookMetaDataMapper bookMetadataMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    public BookController(BookItemMapper bookItemMapper,BookMetaDataMapper bookMetadataMapper) {
+
+    public BookController(BookItemMapper bookItemMapper, BookMetaDataMapper bookMetadataMapper) {
         this.bookItemMapper = bookItemMapper;
         this.bookMetadataMapper = bookMetadataMapper;
     }
 
-    // 获取图书元数据数量
+    // ==========================================
+    // 1. 管理图书元数据
+    // ==========================================
+
+    /**
+     * 获取图书元数据数量
+     * URL: GET /book/bookMetaData/getCount
+     * 功能：查询数据库中所有图书元数据的总记录数
+     *
+     * @return 图书总数
+     */
     @GetMapping(value = "bookMetaData/getCount")
     public HashMap<String, Object> getCount() {
         // 查询所有图书列表 → 取 size 作为总数
@@ -37,27 +41,41 @@ public class BookController {
         if (list == null) {
             return Result.getResultMap(500, "查询失败");
         }
-
         int count = list.size();
         return Result.getResultMap(200, "查询成功", count);
     }
 
-    // ==========================================
-    // 1. 管理图书元数据
-    // ==========================================// 查询所有图书信息
+    /**
+     * 查询所有图书信息
+     * URL: GET /book/queryAllBookMetaDataInfos
+     * 功能：获取数据库中所有的图书元数据列表
+     *
+     * @return 包含所有图书元数据的列表结果
+     */
+    @GetMapping(value = "bookMetaData/getAllBookMetaData")
     public HashMap<String, Object> queryAllBookMetaDataInfos() {
         List<BookMetaData> dataList = bookMetadataMapper.selectAll();
         return Result.getListResultMap(200, "查询成功", dataList.size(), dataList);
     }
 
-    //在数据库中搜索图书信息 - 支持分页与全量查询
+    /**
+     * 搜索图书信息（支持分页）
+     * URL: GET /book/BookMetaData/queryInfos
+     * 功能：根据ISBN或关键词搜索图书，并返回可借阅的图书列表（仅包含有实物的图书）
+     *
+     * @param isbn     图书ISBN号（精确查询）
+     * @param keyword  搜索关键词（模糊查询，用于标题、作者等）
+     * @param pageNum  页码（用于分页查询）
+     * @param pageSize 页大小（用于分页查询）
+     * @return 符合条件的图书元数据列表及总数
+     */
     @GetMapping(value = "BookMetaData/queryInfos")
     public HashMap<String, Object> queryBookMetaDataInfos(
             @RequestParam(required = false) String isbn,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer pageNum,
             @RequestParam(required = false) Integer pageSize) {
-        //执行查询图书逻辑
+        // 执行查询图书逻辑
         try {
             // 参数清理 - 去除前后空格
             isbn = isbn != null ? isbn.trim() : null;
@@ -92,7 +110,6 @@ public class BookController {
             // 处理分页
             int total = availableBooks.size();
             List<BookMetaData> result;
-
             if (pageNum != null && pageSize != null) {
                 // 分页查询模式
                 if (pageNum <= 0 || pageSize <= 0) {
@@ -100,7 +117,6 @@ public class BookController {
                 }
                 int startIndex = (pageNum - 1) * pageSize;
                 int endIndex = Math.min(startIndex + pageSize, total);
-
                 if (startIndex >= total) {
                     result = new java.util.ArrayList<>();
                 } else {
@@ -119,22 +135,47 @@ public class BookController {
         }
     }
 
-    //在数据库中按状态搜索图书信息
+    /**
+     * 按状态关键词搜索图书
+     * URL: GET /book/BookMetaData/queryStatusInfos
+     * 功能：根据关键词模糊搜索图书元数据
+     *
+     * @param keyword 搜索关键词
+     * @return 匹配的图书列表
+     */
     @GetMapping(value = "BookMetaData/queryStatusInfos")
     public HashMap<String, Object> queryBookMetaDataInfosByKeyword(@RequestParam String keyword) {
         List<BookMetaData> bookList = bookMetadataMapper.searchByKeyword("%" + keyword + "%");
         return Result.getListResultMap(200, "查询成功", bookList.size(), bookList);
     }
 
-
-    //在数据库中按种类搜索图书信息
+    /**
+     * 按种类搜索图书信息
+     * URL: GET /book/BookMetaData/queryCategoryInfos
+     * 功能：根据图书分类查询所有相关图书
+     *
+     * @param category 图书分类名称
+     * @return 该分类下的图书列表
+     */
     @GetMapping(value = "BookMetaData/queryCategoryInfos")
     public HashMap<String, Object> queryBookMetaDataInfosByCategory(@RequestParam String category) {
         List<BookMetaData> bookList = bookMetadataMapper.selectByCategory(category);
         return Result.getListResultMap(200, "查询成功", bookList.size(), bookList);
     }
 
-    //向数据库中添加图书信息
+    /**
+     * 添加图书元数据
+     * URL: POST /book/BookMeTaData/addInfos
+     * 功能：向数据库中插入新的图书元数据记录
+     *
+     * @param isbn       图书ISBN (必填)
+     * @param title      书名 (必填)
+     * @param author     作者
+     * @param category   分类
+     * @param keywords   关键词
+     * @param publisher  出版社
+     * @return 操作结果及新插入的图书对象
+     */
     @PostMapping(value = "BookMeTaData/addInfos")
     public HashMap<String, Object> addBookMetaDataInfo(
             @RequestParam String isbn,
@@ -143,11 +184,9 @@ public class BookController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) String publisher) {
-
         // 1. 参数校验（去除首尾空格）
         isbn = isbn.trim();
         title = title.trim();
-
         if (isbn.isEmpty() || title.isEmpty()) {
             return Result.getResultMap(400, "isbn/title不能为空");
         }
@@ -174,7 +213,14 @@ public class BookController {
         return Result.getResultMap(500, "添加失败");
     }
 
-    //从数据库中删除图书
+    /**
+     * 删除图书元数据
+     * URL: DELETE /book/BookMetaData/deleteInfos
+     * 功能：根据ISBN从数据库中删除对应的图书元数据
+     *
+     * @param isbn 图书ISBN
+     * @return 删除结果
+     */
     @DeleteMapping(value = "BookMetaData/deleteInfos")
     public HashMap<String, Object> deleteBookMetaDataInfo(@RequestParam String isbn) {
         int rows = bookMetadataMapper.deleteByIsbn(isbn);
@@ -185,7 +231,19 @@ public class BookController {
         }
     }
 
-    //修改已有图书信息
+    /**
+     * 更新图书元数据
+     * URL: PUT /book/BookMetaData/updateInfos
+     * 功能：根据ISBN更新图书的详细信息
+     *
+     * @param isbn       图书ISBN (必填)
+     * @param title      书名 (必填)
+     * @param author     作者
+     * @param category   分类
+     * @param keywords   关键词
+     * @param publisher  出版社
+     * @return 更新结果及更新后的图书对象
+     */
     @PutMapping(value = "BookMetaData/updateInfos")
     public HashMap<String, Object> updateBookMetaDataInfo(
             @RequestParam String isbn,
@@ -194,7 +252,6 @@ public class BookController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) String publisher) {
-
         // 1. 封装对象
         BookMetaData bookMetaData = new BookMetaData();
         bookMetaData.setIsbn(isbn);
@@ -217,7 +274,14 @@ public class BookController {
     // 2. 管理图书实体
     // ==========================================
 
-    // 添加图书实物
+    /**
+     * 添加图书实物
+     * URL: POST /book/BookItem/addInfos
+     * 功能：添加一本具体的图书实物（绑定RFID）
+     *
+     * @param bookItem 图书实体对象
+     * @return 添加结果
+     */
     @PostMapping("BookItem/addInfos")
     public HashMap<String, Object> addBookItemInfo(@RequestBody BookItem bookItem) {
         if (bookItem == null || bookItem.getRfidTag() == null) {
@@ -227,7 +291,14 @@ public class BookController {
         return rows > 0 ? Result.getResultMap(200, "添加成功") : Result.getResultMap(500, "添加失败");
     }
 
-    // 删除图书实物
+    /**
+     * 删除图书实物
+     * URL: DELETE /book/BookItem/deleteInfos
+     * 功能：根据RFID标签删除特定的图书实物记录
+     *
+     * @param rfidTag 图书RFID标签
+     * @return 删除结果
+     */
     @DeleteMapping("BookItem/deleteInfos")
     public HashMap<String, Object> deleteBookItemInfo(@RequestParam String rfidTag) {
         if (rfidTag == null || rfidTag.isEmpty()) {
@@ -237,7 +308,14 @@ public class BookController {
         return rows > 0 ? Result.getResultMap(200, "删除成功") : Result.getResultMap(500, "删除失败");
     }
 
-    // 修改图书实物
+    /**
+     * 更新图书实物信息
+     * URL: PUT /book/BookItem/updateInfos
+     * 功能：更新图书实物的状态或其他属性
+     *
+     * @param bookItem 图书实体对象
+     * @return 更新结果
+     */
     @PutMapping("BookItem/updateInfos")
     public HashMap<String, Object> updateBookItemInfo(@RequestBody BookItem bookItem) {
         if (bookItem == null || bookItem.getRfidTag() == null) {
@@ -247,19 +325,31 @@ public class BookController {
         return rows > 0 ? Result.getResultMap(200, "修改成功") : Result.getResultMap(500, "修改失败");
     }
 
-    // 根据RFID查询（补充接口）
+    /**
+     * 根据RFID查询图书实物
+     * URL: GET /book/BookItem/getByRfid
+     * 功能：通过RFID标签查询特定的图书实物详情
+     *
+     * @param rfidTag 图书RFID标签
+     * @return 图书实物详情
+     */
     @GetMapping("BookItem/getByRfid")
     public HashMap<String, Object> getByRfid(@RequestParam String rfidTag) {
         if (rfidTag == null || rfidTag.isEmpty()) {
             return Result.getResultMap(400, "rfidTag 不能为空");
         }
         BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
-        return bookItem != null ?
-                Result.getResultMap(200, "查询成功", bookItem) :
-                Result.getResultMap(404, "未找到");
+        return bookItem != null ? Result.getResultMap(200, "查询成功", bookItem) : Result.getResultMap(404, "未找到");
     }
 
-    // 根据ISBN查询
+    /**
+     * 根据ISBN查询图书实物
+     * URL: GET /book/BookItem/getByIsbn
+     * 功能：查询某本图书（根据ISBN）的所有实体副本
+     *
+     * @param isbn 图书ISBN
+     * @return 该ISBN对应的所有实物列表
+     */
     @GetMapping("BookItem/getByIsbn")
     public HashMap<String, Object> getByIsbn(@RequestParam String isbn) {
         if (isbn == null || isbn.isEmpty()) {
@@ -268,7 +358,15 @@ public class BookController {
         List<BookItem> list = bookItemMapper.selectByIsbn(isbn);
         return Result.getListResultMap(200, "查询成功", list.size(), list);
     }
-    // 获取图书详情及实时借阅状态
+
+    /**
+     * 获取图书详情及实时借阅状态
+     * URL: GET /book/borrowingstatus/{isbn}
+     * 功能：查询图书的详细信息，并统计当前可借阅的数量和状态
+     *
+     * @param isbn 图书ISBN路径变量
+     * @return 图书详情、总数量、可借数量及状态信息
+     */
     @GetMapping("/borrowingstatus/{isbn}")
     public HashMap<String, Object> getBorrowingStatus(@PathVariable String isbn) {
         // 1. 查询图书元数据
@@ -301,7 +399,6 @@ public class BookController {
 
         return Result.getResultMap(200, "查询成功", data);
     }
-
 }
 
 
