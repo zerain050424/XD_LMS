@@ -141,13 +141,35 @@ public class UserController {
     }
 
     // TODO R1(Admin) 通过账号或者用户姓名搜索用户
+
     @GetMapping("/searchbyname")
-    public void searchUsersbyname() {
-        // 通过用户姓名搜索用户
+    public HashMap<String, Object> searchUsersbyname(@RequestParam("name") String name) {
+
+        if (name == null || name.trim().isEmpty()) {
+            return Result.getResultMap(400, "用户姓名不能为空");
+        }
+
+        var list = userMapper.searchByKeyword(name);
+
+        if (list == null || list.isEmpty()) {
+            return Result.getResultMap(404, "未找到匹配姓名的用户");
+        }
+        return Result.getListResultMap(200, "查询成功", list.size(), list);
     }
+
     @GetMapping("/searchbyaccount")
-    public void searchUsersbyaccount() {
-        // 通过用户账号搜索用户
+    public HashMap<String, Object> searchUsersbyaccount(@RequestParam("account") String account) {
+
+        if (account == null || account.trim().isEmpty()) {
+            return Result.getResultMap(400, "用户账号不能为空");
+        }
+
+        User user = userMapper.selectByUserAccount(account);
+
+        if (user == null) {
+            return Result.getResultMap(404, "未找到该账号的用户");
+        }
+        return Result.getResultMap(200, "查询成功", user);
     }
 
 }
