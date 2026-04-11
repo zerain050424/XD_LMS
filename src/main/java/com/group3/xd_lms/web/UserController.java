@@ -59,6 +59,7 @@ public class UserController {
         // 4. 执行持久化操作
         try {
             int rows = userMapper.insert(user);
+            System.out.println(rows);
             if (rows > 0) {
                 // 5. 注册成功处理
                 // 安全起见，返回给前端的对象中抹除密码
@@ -79,40 +80,51 @@ public class UserController {
      * URL: POST /users/login
      * 功能：验证账号密码，设置Session，返回用户信息及权限
      *
-     * @param userAccount 账号 (对应数据库 user_account)
-     * @param password 密码
+     * @param loginParams 包含密码和用户名
      * @param session 会话对象
      * @return Result 封装的登录结果
      */
     @PostMapping("/login")
     public HashMap<String, Object> login(
-            @RequestParam String userAccount,
-            @RequestParam String password,
+            @RequestBody Map<String, String> loginParams,
             HttpSession session) {
-        // 1. 参数基础校验
-        if (userAccount.trim().isEmpty() || password.trim().isEmpty()) {
+
+        // 2. 从 Map 中获取前端传来的 key
+        String user_account = loginParams.get("user_account");
+        String password = loginParams.get("password");
+
+        // 3. 参数基础校验 (加上非空判断，防止 get 拿到 null)
+        if (user_account == null || password == null ||
+                user_account.trim().isEmpty() || password.trim().isEmpty()) {
             return Result.getResultMap(400, "账号或密码不能为空");
         }
+
+        // --- 以下逻辑保持不变 ---
+
         // 2. 根据账号查询用户
-        User user = userMapper.selectByUserAccount(userAccount);
+        User user = userMapper.selectByUserAccount(user_account);
+
         // 3. 用户不存在
         if (user == null) {
             return Result.getResultMap(404, "用户不存在");
         }
-        // 4. 检查账号状态 (利用实体类方法)
-        // 对应数据库 status 字段，如果是 Disabled 则拦截
+
+        // 4. 检查账号状态
         if (!user.isActive()) {
             return Result.getResultMap(403, "账号已被禁用，请联系管理员");
         }
+
         // 5. 密码验证
         if (!password.equals(user.getPassword())) {
             return Result.getResultMap(401, "账号或密码错误");
         }
+
         // 6. 登录成功：写入 Session
         session.setAttribute("userId", user.getId());
         session.setAttribute("userAccount", user.getUser_account());
         session.setAttribute("roleId", user.getRoleId());
-        // 模拟权限列表
+
+        // 权限列表逻辑...
         List<String> permissions = new ArrayList<>();
         if (user.isAdmin()) {
             permissions.add("admin");
@@ -125,13 +137,15 @@ public class UserController {
             permissions.add("reader");
         }
         session.setAttribute("permissions", permissions);
+
         // 7. 构建返回数据
         Map<String, Object> data = new HashMap<>();
         data.put("userId", user.getId());
         data.put("userAccount", user.getUser_account());
         data.put("fullName", user.getFullName());
-        data.put("roleId", user.getRoleId());
+        data.put("roleId", user.getRoleId()); // 确保这个 roleId 会返回给前端
         data.put("permissions", permissions);
+
         return Result.getResultMap(200, "登录成功", data);
     }
 
@@ -166,7 +180,7 @@ public class UserController {
      * @param session 会话对象，用于获取操作者的用户 ID
      * @return HashMap<String, Object> 返回更新操作的结果状态
      */
-    @PutMapping("/me")
+    @PutMapping("/me/update")
     public HashMap<String, Object> updateCurrentUserProfile(
             @RequestBody User user,
             HttpSession session) {
