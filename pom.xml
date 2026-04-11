@@ -56,7 +56,8 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <optional>true</optional>
+            <version>1.18.30</version> <!-- 建议使用最新版 -->
+            <scope>provided</scope>
         </dependency>
 
         <!-- 测试 (这一个 starter 包含了 junit, mockito, assertj 等所有东西) -->
