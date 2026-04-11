@@ -67,4 +67,24 @@ public interface UserMapper {
      * 模糊搜索用户（姓名/账号）
      */
     List<User> searchByKeyword(@Param("keyword") String keyword);
+
+    /**
+     * 分页查询用户
+     */
+    List<User> selectUserPage(
+            @Param("pageSize") Integer pageSize,
+            @Param("offset") Integer offset,
+            @Param("roleId") Integer roleId,
+            @Param("status") Integer status,
+            @Param("keyword") String keyword
+    );
+
+    /**
+     * 查询总数
+     */
+    Integer selectUserCount(
+            @Param("roleId") Integer roleId,
+            @Param("status") Integer status,
+            @Param("keyword") String keyword
+    );
 }

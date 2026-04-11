@@ -1,6 +1,8 @@
 package com.group3.xd_lms.web;
 
+import com.group3.xd_lms.entity.BorrowRecord;
 import com.group3.xd_lms.entity.User;
+import com.group3.xd_lms.mapper.BorrowRecordMapper;
 import com.group3.xd_lms.mapper.UserMapper;
 import com.group3.xd_lms.utils.Result;
 import jakarta.servlet.http.HttpSession;
@@ -15,9 +17,11 @@ public class UserController {
 
     @Autowired
     private final UserMapper userMapper;
+    private final BorrowRecordMapper borrowRecordMapper;
 
-    public UserController(UserMapper userMapper) {
+    public UserController(UserMapper userMapper, BorrowRecordMapper borrowRecordMapper) {
         this.userMapper = userMapper;
+        this.borrowRecordMapper = borrowRecordMapper;
     }
     /**
      * 用户注册接口
@@ -219,6 +223,48 @@ public class UserController {
         return rows > 0 ? Result.getResultMap(200, "密码修改成功") : Result.getResultMap(500, "密码修改失败");
     }
 
+
+    /**
+     * 分页查询用户列表（支持条件筛选 + 模糊搜索）
+     * URL: GET /users/pageSearchAll
+     * 权限: R1 (Admin)
+     * 功能：根据页码、每页条数、角色、状态、关键字进行分页查询，返回列表与总数
+     *
+     * @param pageNum  页码（默认 1）
+     * @param pageSize 每页条数（默认 10）
+     * @param roleId   角色ID（可选）
+     * @param status   用户状态（可选）
+     * @param keyword  搜索关键字（账号/姓名，可选）
+     * @return HashMap<String, Object> 返回查询结果、总数、用户列表
+     */
+    @GetMapping("pageSearchAll")
+    public HashMap<String, Object> getUserPage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) Integer roleId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword) {
+
+        // 1. 分页参数校验
+        if (pageNum < 1 || pageSize < 1) {
+            return Result.getResultMap(400, "页码和每页条数必须大于0");
+        }
+
+        // 2. 在这里计算好偏移量，XML 里直接用
+        int offset = pageSize * (pageNum - 1);
+
+        // 3. 查询数据（把 offset 传进去）
+        List<User> userList = userMapper.selectUserPage(pageSize, offset, roleId, status, keyword);
+
+        // 4. 查询总数
+        Integer total = userMapper.selectUserCount(roleId, status, keyword);
+
+
+        // 4. 返回成功结果：包含列表、总条数、当前页码
+        return Result.getListResultMap(200, "查询成功",total, userList);
+    }
+
+
     /**
      * 管理员创建用户
      * URL: POST /users
@@ -281,7 +327,9 @@ public class UserController {
      */
     @PutMapping("/{id}")
     public Map<String, Object> updateUser(@PathVariable("id") Long id, @RequestBody User newUser) {
+
         User oldUser = userMapper.selectById(id);
+        System.out.println(newUser);
         if (oldUser == null) {
             return Result.getResultMap(500, "查询用户失败");
         }
@@ -322,15 +370,24 @@ public class UserController {
         if (user == null) {
             return Result.getResultMap(404, "用户不存在");
         }
+        List<BorrowRecord> res = borrowRecordMapper.selectUnreturnedByUserId(user.getId());
         // 3. 执行逻辑删除
         // 策略：不物理删除数据，而是将状态更新为 Disabled
         // 这样可以保留借阅记录等历史数据的完整性
-        user.setStatus(User.UserStatus.Disabled);
-        int rows = userMapper.updateById(user); // 假设你的 Mapper 中有此方法
-        if (rows > 0) {
-            return Result.getResultMap(200, "用户已注销（禁用）成功");
+        if(!res.isEmpty()) {
+            user.setStatus(User.UserStatus.Disabled);
+            int rows = userMapper.updateById(user);
+            if (rows > 0) {
+                return Result.getResultMap(200, "the user has borrowing records, the delete operation shall be converted to disabling.");
+            }
+            return Result.getResultMap(500, "Deletion failed. Please try again.");
         }
-        return Result.getResultMap(500, "注销失败，请稍后重试");
+
+        int rows = userMapper.deleteById(user.getId());
+        if (rows > 0) {
+            return Result.getResultMap(200, "the user has deleted successfully.");
+        }
+        return Result.getResultMap(500, "Deletion failed. Please try again.");
     }
 
     /**
@@ -409,14 +466,14 @@ public class UserController {
 
     /**
      * 管理员模糊搜索用户
-     * URL: GET /users/searchbyname
+     * URL: GET /users/searchByPattern
      * 权限: R1 (Admin)
      * 功能：通过账号(user_account)或姓名(fullName)模糊搜索用户
      *
      * @param pattern 搜索关键词 (账号或姓名)
      * @return HashMap<String, Object> 返回包含用户列表和总数的结果
      */
-    @GetMapping("/searchbyname")
+    @GetMapping("/searchByPattern")
     public HashMap<String, Object> searchUsersByPattern(@RequestParam String pattern) {
         // 1. 参数校验
         if (pattern == null || pattern.trim().isEmpty()) {
@@ -425,6 +482,7 @@ public class UserController {
         // 2. 执行搜索
         // 策略：在 SQL 层使用 LIKE 语句，同时匹配 user_account 和 fullName
         // 假设 Mapper 中定义了 selectByKeyword 方法
+
         List<User> userList = userMapper.searchByKeyword(pattern);
         // 3. 结果处理
         // 即使列表为空，也返回成功状态，只是 total 为 0
