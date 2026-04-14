@@ -79,4 +79,40 @@
            OR user_name LIKE CONCAT('%',#{keyword},'%')
     </select>
 
+    <!-- 分页查询所有用户（支持可选条件：角色、状态、关键字） -->
+    <select id="selectUserPage" resultMap="BaseResultMap">
+        SELECT * FROM users
+        <where>
+            <if test="roleId != null">
+                AND role_id = #{roleId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (user_account LIKE CONCAT('%', #{keyword}, '%')
+                OR user_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <!-- 查询用户总数（用于分页计算总页数） -->
+    <select id="selectUserCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM users
+        <where>
+            <if test="roleId != null">
+                AND role_id = #{roleId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (user_account LIKE CONCAT('%', #{keyword}, '%')
+                OR user_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
 </mapper>

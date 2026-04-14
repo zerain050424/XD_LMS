@@ -42,6 +42,10 @@
         SELECT * FROM book_items WHERE status = #{status}
     </select>
 
+    <select id="selectAvailableByIsbn" resultMap="BaseResultMap">
+        SELECT * FROM book_items WHERE isbn = #{isbn} AND status = 'Available'
+    </select>
+
     <update id="updateStatus">
         UPDATE book_items
         SET status = #{status}
