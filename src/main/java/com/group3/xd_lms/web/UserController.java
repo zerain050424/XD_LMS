@@ -278,7 +278,7 @@ public class UserController {
      * @param password 用户初始密码 (可选)
      * @return HashMap<String, Object> 返回创建结果及新用户信息
      */
-    @PostMapping
+    @PostMapping("CreateUser")
     public HashMap<String, Object> createUser(
             @RequestParam String userAccount,
             @RequestParam String fullName,
@@ -287,12 +287,12 @@ public class UserController {
             @RequestParam(required = false) String password) {
         // 1. 参数基础校验
         if (userAccount.trim().isEmpty() || fullName.trim().isEmpty()) {
-            return Result.getResultMap(400, "账号和姓名不能为空");
+            return Result.getResultMap(400, "UserAccount Cant be empty");
         }
         // 2. 检查账号是否已存在
         User existingUser = userMapper.selectByUserAccount(userAccount);
         if (existingUser != null) {
-            return Result.getResultMap(409, "该账号已存在，请勿重复创建");
+            return Result.getResultMap(409, "UserAccount Already Exist");
         }
         // 3. 处理默认密码
         String finalPassword = (password == null || password.trim().isEmpty()) ? "123456" : password;
@@ -310,9 +310,9 @@ public class UserController {
         if (rows > 0) {
             // 移除密码字段后再返回，避免泄露
             newUser.setPassword(null);
-            return Result.getResultMap(200, "创建成功", newUser);
+            return Result.getResultMap(200, "Create Success", newUser);
         }
-        return Result.getResultMap(500, "创建失败，请稍后重试");
+        return Result.getResultMap(500, "Create Failed");
     }
 
     /**
@@ -331,13 +331,13 @@ public class UserController {
         User oldUser = userMapper.selectById(id);
         System.out.println(newUser);
         if (oldUser == null) {
-            return Result.getResultMap(500, "查询用户失败");
+            return Result.getResultMap(500, "Search Users Failed");
         }
         if (newUser == null) {
-            return Result.getResultMap(500, "缺少更新后的用户信息");
+            return Result.getResultMap(500, "Lack of Information");
         }
         if (!Objects.equals(newUser.getId(), oldUser.getId())) {
-            return Result.getResultMap(500, "更新后的用户ID与原用户ID不匹配");
+            return Result.getResultMap(500, "The updated user ID does not match the original user ID");
         }
         // 更新除ID外的所有用户信息
         oldUser.setRoleId(newUser.getRoleId());
@@ -347,7 +347,7 @@ public class UserController {
         oldUser.setFullName(newUser.getFullName());
         oldUser.setCreatedAt(newUser.getCreatedAt());
         int rows = userMapper.updateById(oldUser);
-        return Result.getResultMap(200, "更新用户信息成功");
+        return Result.getResultMap(200, "Update Success");
     }
 
     /**
@@ -363,12 +363,12 @@ public class UserController {
     public HashMap<String, Object> deleteUser(@PathVariable Long id) {
         // 1. 参数校验
         if (id == null || id <= 0) {
-            return Result.getResultMap(400, "用户ID无效");
+            return Result.getResultMap(400, "User ID is invalid");
         }
         // 2. 查询用户是否存在
         User user = userMapper.selectById(id); // 假设你的 Mapper 中有此方法
         if (user == null) {
-            return Result.getResultMap(404, "用户不存在");
+            return Result.getResultMap(404, "User Not Found");
         }
         List<BorrowRecord> res = borrowRecordMapper.selectUnreturnedByUserId(user.getId());
         // 3. 执行逻辑删除
@@ -452,16 +452,16 @@ public class UserController {
         // 从 Map 中提取新角色
         Integer newRoleId = params.get("role");
         if (newRoleId == null) {
-            return Result.getResultMap(500, "缺少角色参数");
+            return Result.getResultMap(500, "Missing role parameter");
         }
         User user = userMapper.selectById(id);
         if (user == null) {
-            return Result.getResultMap(500, "查询用户失败");
+            return Result.getResultMap(500, "Search Users Failed");
         }
-        System.out.println("正在将用户 " + id + " 的角色修改为: " + newRoleId);
+        System.out.println("Update Old UserId:" + id + "  to: " + newRoleId);
         user.setRoleId(newRoleId);
         int rows = userMapper.updateById(user);
-        return Result.getResultMap(200, "更新用户角色成功");
+        return Result.getResultMap(200, "Update Success");
     }
 
     /**
@@ -477,7 +477,7 @@ public class UserController {
     public HashMap<String, Object> searchUsersByPattern(@RequestParam String pattern) {
         // 1. 参数校验
         if (pattern == null || pattern.trim().isEmpty()) {
-            return Result.getResultMap(400, "搜索关键词不能为空");
+            return Result.getResultMap(400, "The search keyword cannot be empty");
         }
         // 2. 执行搜索
         // 策略：在 SQL 层使用 LIKE 语句，同时匹配 user_account 和 fullName
@@ -492,7 +492,7 @@ public class UserController {
         // 4. 安全处理 (可选)
         // 在返回列表前，将密码字段置空，防止敏感信息泄露
         userList.forEach(user -> user.setPassword(null));
-        return Result.getListResultMap(200, "搜索成功", userList.size(), userList);
+        return Result.getListResultMap(200, "Search Success", userList.size(), userList);
     }
 
     /**
@@ -508,11 +508,11 @@ public class UserController {
     public HashMap<String, Object> searchUsersByRoleId(@RequestParam Integer roleId) {
         // 1. 参数校验
         if (roleId == null) {
-            return Result.getResultMap(400, "角色ID不能为空");
+            return Result.getResultMap(400, "Role ID cannot be empty");
         }
         // 2. 角色ID有效性校验 (可选)
         if (roleId < 1 || roleId > 3) {
-            return Result.getResultMap(400, "无效的角色ID，仅支持 1(Admin), 2(Librarian), 3(Reader)");
+            return Result.getResultMap(400, "Invalid role ID, only 1 (Admin), 2 (Librarian), 3 (Reader) are supported");
         }
         // 3. 执行搜索
         // 假设 Mapper 中定义了 selectByRoleId 方法
@@ -523,6 +523,6 @@ public class UserController {
         }
         // 5. 安全处理：移除密码字段
         userList.forEach(user -> user.setPassword(null));
-        return Result.getListResultMap(200, "查询成功", userList.size(), userList);
+        return Result.getListResultMap(200, "Query Success", userList.size(), userList);
     }
 }
