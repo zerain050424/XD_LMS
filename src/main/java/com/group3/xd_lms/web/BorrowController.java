@@ -43,18 +43,18 @@ public class BorrowController {
      * @param userId  借阅用户ID
      * @return 借阅结果（成功/失败原因）
      */
-    @RequestMapping(value = {"/borrowBook", "/reader/borrowBook"}, method = RequestMethod.POST)
+    @RequestMapping(value = {"/borrowBook"}, method = RequestMethod.POST)
     @Transactional
     public Map<String, Object> borrowBook(@RequestParam String rfidTag, @RequestParam Long userId) {
         // 扫描RFID码进行借书
-
+        System.out.println(rfidTag);
         BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
         User user = userMapper.selectById(userId);
         if (bookItem == null) { // 未找到书目
-            return Result.getResultMap(500, "查询书籍失败");
+            return Result.getResultMap(500, "Search Book Failed");
         }
         if (user == null) {
-            return Result.getResultMap(500, "查询用户失败");
+            return Result.getResultMap(500, "Search User Failed");
         }
         if (bookItem.isAvailable()) {
             BorrowRecord borrowRecord = new BorrowRecord();
@@ -65,9 +65,10 @@ public class BorrowController {
             borrowRecord.setUser(user);
             bookItem.setStatus(BookItem.BookStatus.Loaned);
             borrowRecordMapper.insert(borrowRecord);
-            return Result.getResultMap(200, "借阅成功");
+            bookItemMapper.updateByRfidTag(bookItem);
+            return Result.getResultMap(200, "Borrow Book Success");
         } else {
-            return Result.getResultMap(200, "书籍不可借，借阅失败");
+            return Result.getResultMap(500, "the Item is loaned");
         }
     }
 
@@ -88,14 +89,14 @@ public class BorrowController {
 
         // 1. 参数校验 (rfidTag 必填，userId 选填)
         if (rfidTag == null || rfidTag.trim().isEmpty()) {
-            return Result.getResultMap(400, "RFID不能为空");
+            return Result.getResultMap(400, "RFID Cant be empty");
         }
         rfidTag = rfidTag.trim();
 
         // 2. 查询未归还的记录
         BorrowRecord record = borrowRecordMapper.selectUnreturnedByRfid(rfidTag);
         if (record == null) {
-            return Result.getResultMap(404, "未查询到该图书的借阅记录");
+            return Result.getResultMap(404, "Dont Find the Unreturned Record");
         }
 
         // 3. 权限校验 (如果传入了 userId，则校验是否匹配)
@@ -114,14 +115,14 @@ public class BorrowController {
         int updatedRecord = borrowRecordMapper.updateReturnDate(record.getId(), dateStr);
         if (updatedRecord <= 0) {
             // 抛出异常触发事务回滚
-            throw new RuntimeException("还书失败：借阅记录更新失败");
+            throw new RuntimeException("Return Book Failed");
         }
 
         // 4.2 更新图书状态为“在馆”
         int updatedBook = bookItemMapper.updateStatus(rfidTag, BookItem.BookStatus.Available.name());
         if (updatedBook <= 0) {
             // 抛出异常触发事务回滚
-            throw new RuntimeException("还书失败：图书状态更新失败");
+            throw new RuntimeException("Return Book Failed");
         }
 
         // 5. 组装返回数据
@@ -133,7 +134,7 @@ public class BorrowController {
         data.put("returnTime", now);
         data.put("book", bookItem);
 
-        return Result.getResultMap(200, "还书成功", data);
+        return Result.getResultMap(200, "Return Success", data);
     }
 
     /**
@@ -147,9 +148,9 @@ public class BorrowController {
     public Map<String, Object> getAllRecords() {
         List<BorrowRecord> list = borrowRecordMapper.selectAllRecords();
         if (list == null) {
-            return Result.getResultMap(500, "查询借阅记录失败");
+            return Result.getResultMap(500, "Search Borrow Records Failed");
         }
-        return Result.getListResultMap(200, "查询成功", list.size(), list);
+        return Result.getListResultMap(200, "Search Success", list.size(), list);
     }
 
     /**
@@ -164,15 +165,15 @@ public class BorrowController {
     public Map<String, Object> getRecordsByUserId(@RequestParam Long userId) {
         // 参数校验
         if (userId == null || userId <= 0) {
-            return Result.getResultMap(400, "用户ID不能为空");
+            return Result.getResultMap(400, "User Id Cant be empty");
         }
 
         List<BorrowRecord> list = borrowRecordMapper.selectByUserId(userId);
         if (list == null) {
-            return Result.getResultMap(500, "查询失败");
+            return Result.getResultMap(500, "Search Borrow Records Failed");
         }
 
-        return Result.getListResultMap(200, "查询成功", list.size(), list);
+        return Result.getListResultMap(200, "Search Success", list.size(), list);
     }
 
     /**
@@ -187,15 +188,15 @@ public class BorrowController {
     public Map<String, Object> getRecordByRfid(@RequestParam String rfidTag) {
         // 参数校验
         if (rfidTag == null || rfidTag.trim().isEmpty()) {
-            return Result.getResultMap(400, "RFID不能为空");
+            return Result.getResultMap(400, "RFID Cant be empty");
         }
 
         BorrowRecord record = borrowRecordMapper.selectUnreturnedByRfid(rfidTag);
         if (record == null) {
-            return Result.getResultMap(404, "未查询到该图书的借阅记录");
+            return Result.getResultMap(404, "Can not find the Unreturned Record");
         }
 
-        return Result.getResultMap(200, "查询成功", record);
+        return Result.getResultMap(200, "Search Success", record);
     }
 
 
@@ -210,7 +211,7 @@ public class BorrowController {
     public Map<String, Object> getTotalCount() {
         List<BorrowRecord> all = borrowRecordMapper.selectAllRecords();
         int count = all == null ? 0 : all.size();
-        return Result.getListResultMap(200, "查询成功", count, null);
+        return Result.getListResultMap(200, "Search Success", count, null);
     }
 
     /**
@@ -224,7 +225,7 @@ public class BorrowController {
     public Map<String, Object> getOverdueCount() {
         List<BorrowRecord> overdue = borrowRecordMapper.selectOverdueRecords();
         int count = overdue == null ? 0 : overdue.size();
-        return Result.getListResultMap(200, "查询成功", count, null);
+        return Result.getListResultMap(200, "Search Success", count, null);
     }
 
 }
