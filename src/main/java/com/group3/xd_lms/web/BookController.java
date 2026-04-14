@@ -5,7 +5,6 @@ import com.group3.xd_lms.entity.BookMetaData;
 import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BookMetaDataMapper;
 import com.group3.xd_lms.utils.Result;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
@@ -385,6 +384,23 @@ public class BookController {
         data.put("statusMessage", statusMessage);
 
         return Result.getResultMap(200, "Search Success", data);
+    }
+
+    private String normalizeBookStatus(String inputStatus) {
+        String value = inputStatus.trim().toLowerCase(Locale.ROOT);
+        if ("在馆".equals(value) || "available".equals(value)) {
+            return "Available";
+        }
+        if ("已借出".equals(value) || "checked out".equals(value) || "loaned".equals(value)) {
+            return "Loaned";
+        }
+        if ("遗失".equals(value) || "丢失".equals(value) || "lost".equals(value)) {
+            return "Lost";
+        }
+        if ("预约".equals(value) || "预约中".equals(value) || "reserved".equals(value)) {
+            return "Reserved";
+        }
+        return null;
     }
 }
 
