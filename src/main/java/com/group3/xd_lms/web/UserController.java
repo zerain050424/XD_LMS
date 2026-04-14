@@ -113,10 +113,10 @@ public class UserController {
             return Result.getResultMap(404, "用户不存在");
         }
 
-        // 4. 检查账号状态
-        if (!user.isActive()) {
-            return Result.getResultMap(403, "账号已被禁用，请联系管理员");
-        }
+//        // 4. 检查账号状态
+//        if (!user.isActive()) {
+//            return Result.getResultMap(403, "账号已被禁用，请联系管理员");
+//        }
 
         // 5. 密码验证
         if (!password.equals(user.getPassword())) {
@@ -149,6 +149,7 @@ public class UserController {
         data.put("fullName", user.getFullName());
         data.put("roleId", user.getRoleId()); // 确保这个 roleId 会返回给前端
         data.put("permissions", permissions);
+        data.put("Status",user.getStatus());
 
         return Result.getResultMap(200, "登录成功", data);
     }
