@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
+
 /*********** R1 Version *****************/
 @RestController
 @RequestMapping(value = "/book")
@@ -289,7 +291,11 @@ public class BookController {
     @DeleteMapping("BookItem/deleteInfos")
     public HashMap<String, Object> deleteBookItemInfo(@RequestParam String rfidTag) {
         if (rfidTag == null || rfidTag.isEmpty()) {
-            return Result.getResultMap(400, "rfidTag no empty");
+            return Result.getResultMap(500, "rfidTag no empty");
+        }
+         BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
+        if(Objects.equals(bookItem.getStatus().toString(), "Loaned") || Objects.equals(bookItem.getStatus().toString(), "Reserved")) {
+            return Result.getResultMap(500, "The BookItem is already loaned/reserved");
         }
         int rows = bookItemMapper.deleteByRfidTag(rfidTag);
         return rows > 0 ? Result.getResultMap(200, "delete success") : Result.getResultMap(500, "delete failed");

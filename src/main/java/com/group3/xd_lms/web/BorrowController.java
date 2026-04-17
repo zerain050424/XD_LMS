@@ -68,7 +68,7 @@ public class BorrowController {
             bookItemMapper.updateByRfidTag(bookItem);
             return Result.getResultMap(200, "Borrow Book Success");
         } else {
-            return Result.getResultMap(500, "the Item is loaned");
+            return Result.getResultMap(500, "the Item Can't  Be Borrowed");
         }
     }
 
