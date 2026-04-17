@@ -78,6 +78,19 @@ public class UserController {
         }
     }
 
+    /**
+     * 获取当前登录用户的状态
+     * URL: GET /users/status
+     * 功能：前端传入userId,后端根据userId返回状态
+     *
+     * @param userId 用于获取当前登录用户 ID
+     * @return HashMap<String, Object> 包含用户实体的通用结果
+     */
+    @GetMapping("/status")
+    public HashMap<String, Object> GetUserStatus(@RequestParam Integer userId) {
+        User res = userMapper.selectById(Long.valueOf(userId));
+        return Result.getResultMap(200, "Get User Status Success", res.getStatus());
+    }
 
     /**
      * 用户登录接口
@@ -113,14 +126,14 @@ public class UserController {
             return Result.getResultMap(404, "用户不存在");
         }
 
-//        // 4. 检查账号状态
-//        if (!user.isActive()) {
-//            return Result.getResultMap(403, "账号已被禁用，请联系管理员");
-//        }
+        // 4. 检查账号状态
+        if (user.getRoleId()==2 && !user.isActive()) {
+            return Result.getResultMap(403, "The Account is Disabled,Please Contact Administrator");
+        }
 
         // 5. 密码验证
         if (!password.equals(user.getPassword())) {
-            return Result.getResultMap(401, "账号或密码错误");
+            return Result.getResultMap(401, "The Account/Password is incorrect");
         }
 
         // 6. 登录成功：写入 Session
