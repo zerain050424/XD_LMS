@@ -13,7 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/book")
 public class BookController {
-    @Autowired
     private final BookItemMapper bookItemMapper;
     private final BookMetaDataMapper bookMetadataMapper;
 

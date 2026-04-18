@@ -23,7 +23,6 @@ public class BorrowController {
 
     private static final DateTimeFormatter DB_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @Autowired
     private final BorrowRecordMapper borrowRecordMapper;
     private final BookItemMapper bookItemMapper;
     private final UserMapper userMapper;
@@ -64,6 +63,7 @@ public class BorrowController {
             borrowRecord.setDueDate(LocalDateTime.now().plusDays(40));
             borrowRecord.setUser(user);
             bookItem.setStatus(BookItem.BookStatus.Loaned);
+            bookItemMapper.updateStatus(rfidTag,BookItem.BookStatus.Loaned.name());
             borrowRecordMapper.insert(borrowRecord);
             return Result.getResultMap(200, "借阅成功");
         } else {

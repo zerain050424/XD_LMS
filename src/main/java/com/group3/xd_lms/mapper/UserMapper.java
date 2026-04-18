@@ -67,4 +67,9 @@ public interface UserMapper {
      * 模糊搜索用户（姓名/账号）
      */
     List<User> searchByKeyword(@Param("keyword") String keyword);
+
+    /**
+     * 批量导入用户数据 - 用于 Admin 角色 R2 批量导入功能
+     */
+    int batchInsertUsers(@Param("userList") List<User> userList);
 }

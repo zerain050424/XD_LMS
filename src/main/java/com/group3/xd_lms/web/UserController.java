@@ -1,6 +1,7 @@
 package com.group3.xd_lms.web;
 
 import com.group3.xd_lms.entity.User;
+import com.group3.xd_lms.mapper.SystemSettingsMapper;
 import com.group3.xd_lms.mapper.UserMapper;
 import com.group3.xd_lms.utils.Result;
 import jakarta.servlet.http.HttpSession;
@@ -13,11 +14,12 @@ import java.util.*;
 @RequestMapping("/users")
 public class UserController {
 
-    @Autowired
     private final UserMapper userMapper;
+    private final SystemSettingsMapper systemSettingsMapper;
 
-    public UserController(UserMapper userMapper) {
+    public UserController(UserMapper userMapper, SystemSettingsMapper systemSettingsMapper) {
         this.userMapper = userMapper;
+        this.systemSettingsMapper = systemSettingsMapper;
     }
 
     /**
@@ -399,4 +401,69 @@ public class UserController {
         userList.forEach(user -> user.setPassword(null));
         return Result.getListResultMap(200, "查询成功", userList.size(), userList);
     }
+
+    /**
+     * 管理员批量导入用户数据
+     * URL: POST /users/batch
+     * 权限: R2 (Admin)
+     * 功能：批量导入学生/教职工信息。若数据中未指定密码，则统一设置默认密码 123456；
+     *      若未指定状态，则统一设置为 Active。
+     *
+     * @param userList 包含多个用户对象的列表 (JSON 数组)
+     * @return HashMap<String, Object> 返回批量创建的结果状态
+     */
+    //TODO 管理员批量导入用户数据(R2)
+    @PostMapping("/batch")
+    public HashMap<String, Object> batchImportUsers(@RequestBody List<User> userList) {
+        return null;
+    }
+
+
+    /**
+     * 更新特定的全局业务规则
+     * URL: PUT users/settings/getallsettings
+     * 权限: R2 (Admin)
+     * 功能：根据配置键更新其对应的值（例如：将每日罚款金额从 0.5 修改为 1.0）
+     * 功能：展示当前系统所有的业务参数配置（如每日罚金、最大续借次数等）
+     *
+     * @return HashMap<String, Object> 包含配置详情的通用结果
+     */
+    //TODO 获取全局系统配置信息
+    @GetMapping("settings/getallsettings")
+    public HashMap<String, Object> getAllSettings() {
+        return null;
+    }
+
+    /**
+     * 根据 Key 获取单个配置项的值
+     * URL: GET users/settings/getbykey
+     *
+     * @param key 配置键名称
+     * @return HashMap<String, Object> 返回对应的配置值
+     */
+    //TODO 通过配置键获取配置信息
+    @GetMapping("/settings/getbykey")
+    public HashMap<String, Object> getSettingByKey(@RequestParam String key) {
+        return null;
+    }
+
+    /**
+     * 更新系统全局规则配置
+     * URL: POST /settings/update
+     * 权限: R2 (Admin)
+     * 功能：根据前端提交的 key 和 val 修改业务参数
+     * 示例参数：key="daily_fine_amount", val="1.5"
+     *
+     * @param key 配置项的键名称 (对应数据库 setting_key)
+     * @param val 配置项的新目标值 (对应数据库 setting_value)
+     * @return HashMap<String, Object> 返回更新操作的结果状态
+     */
+    //TODO 修改系统参数信息
+    @PostMapping("settings/update")
+    public HashMap<String, Object> updateSystemRule(
+            @RequestParam String key,
+            @RequestParam  Float val) {
+        return null;
+    }
+
 }
