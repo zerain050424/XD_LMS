@@ -70,3 +70,27 @@ CREATE TABLE `borrow_records` (
   CONSTRAINT `fk_borrow_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_borrow_rfid` FOREIGN KEY (`rfid_tag`) REFERENCES `book_items` (`rfid_tag`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- 荐购记录表
+-- ----------------------------
+CREATE TABLE `book_recommendations` (
+  `id` INT NOT NULL AUTO_INCREMENT COMMENT '荐购记录ID',
+  `user_id` INT NOT NULL COMMENT '荐购读者ID',
+  `isbn` VARCHAR(20) DEFAULT NULL COMMENT '荐购图书ISBN',
+  `title` VARCHAR(255) NOT NULL COMMENT '荐购图书名称',
+  `author` VARCHAR(255) DEFAULT NULL COMMENT '作者',
+  `publisher` VARCHAR(255) DEFAULT NULL COMMENT '出版社',
+  `reason` TEXT DEFAULT NULL COMMENT '荐购理由',
+  `status` ENUM('Pending', 'Approved', 'Rejected', 'Purchased') DEFAULT 'Pending'
+    COMMENT '状态: Pending-待审核, Approved-审核通过, Rejected-已拒绝, Purchased-已采购',
+  `admin_id` INT DEFAULT NULL COMMENT '处理管理员ID',
+  `feedback` TEXT DEFAULT NULL COMMENT '管理员反馈意见',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_recommendation_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_recommendation_admin` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图书荐购记录表';

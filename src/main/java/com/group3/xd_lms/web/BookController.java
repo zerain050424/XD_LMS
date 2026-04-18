@@ -6,8 +6,11 @@ import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BookMetaDataMapper;
 import com.group3.xd_lms.utils.Result;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+
 /*********** R1 Version *****************/
 @RestController
 @RequestMapping(value = "/book")
@@ -403,6 +406,5 @@ public class BookController {
         return null;
     }
 }
-
 
 

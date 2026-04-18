@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.group3.xd_lms.mapper.BookRecommendationMapper">
+
+    <!-- ==================== ResultMap ==================== -->
+    <resultMap id="BaseResultMap" type="com.group3.xd_lms.entity.BookRecommendation">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="isbn" property="isbn"/>
+        <result column="title" property="title"/>
+        <result column="author" property="author"/>
+        <result column="publisher" property="publisher"/>
+        <result column="reason" property="reason"/>
+        <result column="status" property="status"/>
+        <result column="admin_id" property="adminId"/>
+        <result column="feedback" property="feedback"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="DetailResultMap" type="com.group3.xd_lms.entity.BookRecommendation" extends="BaseResultMap">
+        <association property="user" javaType="com.group3.xd_lms.entity.User">
+            <id column="u_id" property="id"/>
+            <result column="u_account" property="user_account"/>
+            <result column="u_name" property="fullName"/>
+            <result column="u_email" property="email"/>
+        </association>
+        <association property="admin" javaType="com.group3.xd_lms.entity.User">
+            <id column="a_id" property="id"/>
+            <result column="a_account" property="user_account"/>
+            <result column="a_name" property="fullName"/>
+        </association>
+    </resultMap>
+
+    <!-- ==================== 基础CRUD ==================== -->
+    <insert id="insert" parameterType="com.group3.xd_lms.entity.BookRecommendation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO book_recommendations (user_id, isbn, title, author, publisher, reason, status)
+        VALUES (#{userId}, #{isbn}, #{title}, #{author}, #{publisher}, #{reason}, #{status})
+    </insert>
+
+    <select id="selectById" resultMap="DetailResultMap">
+        SELECT
+        r.*,
+        u.id AS u_id, u.user_account AS u_account, u.user_name AS u_name, u.email AS u_email,
+        a.id AS a_id, a.user_account AS a_account, a.user_name AS a_name
+        FROM book_recommendations r
+        LEFT JOIN users u ON r.user_id = u.id
+        LEFT JOIN users a ON r.admin_id = a.id
+        WHERE r.id = #{id}
+    </select>
+
+    <update id="updateById" parameterType="com.group3.xd_lms.entity.BookRecommendation">
+        UPDATE book_recommendations
+        <set>
+            <if test="isbn != null">isbn = #{isbn},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="author != null">author = #{author},</if>
+            <if test="publisher != null">publisher = #{publisher},</if>
+            <if test="reason != null">reason = #{reason},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM book_recommendations WHERE id = #{id}
+    </delete>
+
+    <!-- ==================== 读者端查询 ==================== -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM book_recommendations
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByUserIdPage" resultMap="BaseResultMap">
+        SELECT * FROM book_recommendations
+        WHERE user_id = #{userId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM book_recommendations
+        WHERE user_id = #{userId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <!-- ==================== 管理员端查询 ==================== -->
+    <select id="selectAll" resultMap="DetailResultMap">
+        SELECT
+        r.*,
+        u.id AS u_id, u.user_account AS u_account, u.user_name AS u_name,
+        a.id AS a_id, a.user_account AS a_account, a.user_name AS a_name
+        FROM book_recommendations r
+        LEFT JOIN users u ON r.user_id = u.id
+        LEFT JOIN users a ON r.admin_id = a.id
+        ORDER BY
+        CASE r.status WHEN 'Pending' THEN 1 ELSE 2 END,
+        r.created_at DESC
+    </select>
+
+    <select id="selectAllPage" resultMap="DetailResultMap">
+        SELECT
+        r.*,
+        u.id AS u_id, u.user_account AS u_account, u.user_name AS u_name,
+        a.id AS a_id, a.user_account AS a_account, a.user_name AS a_name
+        FROM book_recommendations r
+        LEFT JOIN users u ON r.user_id = u.id
+        LEFT JOIN users a ON r.admin_id = a.id
+        <where>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+                OR r.isbn LIKE CONCAT('%', #{keyword}, '%')
+                OR u.user_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY
+        CASE r.status WHEN 'Pending' THEN 1 WHEN 'Approved' THEN 2 ELSE 3 END,
+        r.created_at DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countAll" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM book_recommendations r
+        LEFT JOIN users u ON r.user_id = u.id
+        <where>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+                OR r.isbn LIKE CONCAT('%', #{keyword}, '%')
+                OR u.user_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByStatus" resultMap="DetailResultMap">
+        SELECT
+        r.*,
+        u.id AS u_id, u.user_account AS u_account, u.user_name AS u_name,
+        a.id AS a_id, a.user_account AS a_account, a.user_name AS a_name
+        FROM book_recommendations r
+        LEFT JOIN users u ON r.user_id = u.id
+        LEFT JOIN users a ON r.admin_id = a.id
+        WHERE r.status = #{status}
+        ORDER BY r.created_at DESC
+    </select>
+
+    <!-- ==================== 审核操作 ==================== -->
+    <update id="reviewById">
+        UPDATE book_recommendations
+        SET status = #{status},
+        admin_id = #{adminId},
+        feedback = #{feedback}
+        WHERE id = #{id}
+    </update>
+
+    <!-- ==================== 统计查询 ==================== -->
+    <select id="countByStatusGroup" resultType="com.group3.xd_lms.mapper.BookRecommendationMapper$StatusCount">
+        SELECT status, COUNT(*) AS count
+        FROM book_recommendations
+        GROUP BY status
+    </select>
+
+</mapper>
