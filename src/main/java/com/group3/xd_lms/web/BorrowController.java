@@ -65,7 +65,6 @@ public class BorrowController {
             bookItem.setStatus(BookItem.BookStatus.Loaned);
             bookItemMapper.updateStatus(rfidTag,BookItem.BookStatus.Loaned.name());
             borrowRecordMapper.insert(borrowRecord);
-            bookItemMapper.updateByRfidTag(bookItem);
             return Result.getResultMap(200, "Borrow Book Success");
         } else {
             return Result.getResultMap(500, "the Item Can't  Be Borrowed");
@@ -102,7 +101,7 @@ public class BorrowController {
         // 3. 权限校验 (如果传入了 userId，则校验是否匹配)
         if (userId != null) {
             if (!userId.equals(record.getUserId())) {
-                return Result.getResultMap(403, "当前用户无权归还该图书");
+                return Result.getResultMap(500, "当前用户无权归还该图书");
             }
         }
 
