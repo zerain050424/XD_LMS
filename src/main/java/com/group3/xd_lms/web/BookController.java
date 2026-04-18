@@ -5,11 +5,12 @@ import com.group3.xd_lms.entity.BookMetaData;
 import com.group3.xd_lms.mapper.BookItemMapper;
 import com.group3.xd_lms.mapper.BookMetaDataMapper;
 import com.group3.xd_lms.utils.Result;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
+/*********** R1 Version *****************/
 @RestController
 @RequestMapping(value = "/book")
 public class BookController {
@@ -54,7 +55,7 @@ public class BookController {
     @GetMapping(value = "bookMetaData/getAllBookMetaData")
     public HashMap<String, Object> queryAllBookMetaDataInfos() {
         List<BookMetaData> dataList = bookMetadataMapper.selectAll();
-        return Result.getListResultMap(200, "查询成功", dataList.size(), dataList);
+        return Result.getListResultMap(200, "Search Success", dataList.size(), dataList);
     }
 
     /**
@@ -79,10 +80,10 @@ public class BookController {
             // 参数清理 - 去除前后空格
             isbn = isbn != null ? isbn.trim() : null;
             keyword = keyword != null ? keyword.trim() : null;
-
+            System.out.println(isbn);
             // 参数校验
             if ((isbn == null || isbn.isEmpty()) && (keyword == null || keyword.isEmpty())) {
-                throw new IllegalArgumentException("请提供ISBN或关键词进行搜索");
+                throw new IllegalArgumentException("Please input ISBN or keyword");
             }
 
             // 获取所有符合条件的元数据
@@ -90,62 +91,36 @@ public class BookController {
             if (isbn != null && !isbn.isEmpty()) {
                 // 按ISBN查询单本
                 BookMetaData singleResult = bookMetadataMapper.selectByIsbn(isbn);
-                allMetadata = singleResult != null ? new java.util.ArrayList<>(java.util.Arrays.asList(singleResult)) : new java.util.ArrayList<>();
+                if (singleResult != null) {
+                    return Result.getResultMap(200, "Search Success", singleResult);
+                }
+                else{
+                    return Result.getResultMap(500, "Search failed,Dont find this book");
+                }
             } else {
                 // 按关键词模糊搜索
                 allMetadata = bookMetadataMapper.searchByKeyword(keyword);
+                return Result.getListResultMap(200, "Search Success",allMetadata.size(), allMetadata);
             }
-
-            // 获取对应的可借阅实物图书
-            List<BookMetaData> availableBooks = new java.util.ArrayList<>();
-            for (BookMetaData metadata : allMetadata) {
-                // 查询该ISBN下所有Available状态的图书
-                List<BookItem> availableItems = bookItemMapper.selectAvailableByIsbn(metadata.getIsbn());
-                if (availableItems != null && !availableItems.isEmpty()) {
-                    availableBooks.add(metadata);
-                }
-            }
-
-            // 处理分页
-            int total = availableBooks.size();
-            List<BookMetaData> result;
-            if (pageNum != null && pageSize != null) {
-                // 分页查询模式
-                if (pageNum <= 0 || pageSize <= 0) {
-                    throw new IllegalArgumentException("页码和页大小必须大于0");
-                }
-                int startIndex = (pageNum - 1) * pageSize;
-                int endIndex = Math.min(startIndex + pageSize, total);
-                if (startIndex >= total) {
-                    result = new java.util.ArrayList<>();
-                } else {
-                    result = availableBooks.subList(startIndex, endIndex);
-                }
-            } else {
-                // 全量查询模式
-                result = availableBooks;
-            }
-
-            return Result.getListResultMap(200, "查询成功", total, result);
-        } catch (IllegalArgumentException e) {
-            return Result.getResultMap(500, e.getMessage());
-        } catch (Exception e) {
-            return Result.getResultMap(500, "查询图书元数据失败，请稍后重试");
-        }
+    } catch (IllegalArgumentException e) {
+        return Result.getResultMap(500, e.getMessage());
+    } catch (Exception e) {
+        return Result.getResultMap(500, "Search failed");
+    }
     }
 
     /**
-     * 按状态关键词搜索图书
+     * 按关键词搜索图书
      * URL: GET /book/BookMetaData/queryStatusInfos
      * 功能：根据关键词模糊搜索图书元数据
      *
      * @param keyword 搜索关键词
      * @return 匹配的图书列表
      */
-    @GetMapping(value = "BookMetaData/queryStatusInfos")
+    @GetMapping(value = "BookMetaData/queryInfosByKeyword")
     public HashMap<String, Object> queryBookMetaDataInfosByKeyword(@RequestParam String keyword) {
         List<BookMetaData> bookList = bookMetadataMapper.searchByKeyword("%" + keyword + "%");
-        return Result.getListResultMap(200, "查询成功", bookList.size(), bookList);
+        return Result.getListResultMap(200, "Search Success", bookList.size(), bookList);
     }
 
     /**
@@ -159,7 +134,20 @@ public class BookController {
     @GetMapping(value = "BookMetaData/queryCategoryInfos")
     public HashMap<String, Object> queryBookMetaDataInfosByCategory(@RequestParam String category) {
         List<BookMetaData> bookList = bookMetadataMapper.selectByCategory(category);
-        return Result.getListResultMap(200, "查询成功", bookList.size(), bookList);
+        return Result.getListResultMap(200, "Search Success", bookList.size(), bookList);
+    }
+    /**
+     * 按isbn搜索图书信息
+     * URL: GET /book/BookMetaData/queryBookInfosByISBN
+     * 功能：根据图书isbn码查询图书
+     *
+     * @param isbn 图书isbn码
+     * @return 对应isbn号的图书
+     */
+    @GetMapping(value = "BookMetaData/queryBookInfosByISBN")
+    public HashMap<String, Object> queryBookMetaDataInfosByISBN(@RequestParam String isbn) {
+        BookMetaData bookMeta = bookMetadataMapper.selectByIsbn(isbn);
+        return Result.getResultMap(200, "Search Success", bookMeta);
     }
 
     /**
@@ -187,12 +175,12 @@ public class BookController {
         isbn = isbn.trim();
         title = title.trim();
         if (isbn.isEmpty() || title.isEmpty()) {
-            return Result.getResultMap(400, "isbn/title不能为空");
+            return Result.getResultMap(400, "isbn/title cant be empty");
         }
 
         // 2. 查重
         if (bookMetadataMapper.selectByIsbn(isbn) != null) {
-            return Result.getResultMap(409, "该ISBN已存在");
+            return Result.getResultMap(409, "The ISBN already exist");
         }
 
         // 3. 封装对象
@@ -207,9 +195,9 @@ public class BookController {
         // 4. 执行插入
         int rows = bookMetadataMapper.insert(bookMetaData);
         if (rows > 0) {
-            return Result.getResultMap(200, "添加成功", bookMetaData);
+            return Result.getResultMap(200, "Add Success", bookMetaData);
         }
-        return Result.getResultMap(500, "添加失败");
+        return Result.getResultMap(500, "Add failed");
     }
 
     /**
@@ -224,9 +212,9 @@ public class BookController {
     public HashMap<String, Object> deleteBookMetaDataInfo(@RequestParam String isbn) {
         int rows = bookMetadataMapper.deleteByIsbn(isbn);
         if (rows > 0) {
-            return Result.getResultMap(200, "删除成功");
+            return Result.getResultMap(200, "Delete Success");
         } else {
-            return Result.getResultMap(500, "删除失败，图书可能不存在");
+            return Result.getResultMap(500, "Delete Failed,No BookMetaData");
         }
     }
 
@@ -263,9 +251,9 @@ public class BookController {
         // 2. 执行更新
         int rows = bookMetadataMapper.updateByIsbn(bookMetaData);
         if (rows > 0) {
-            return Result.getResultMap(200, "更新成功", bookMetaData);
+            return Result.getResultMap(200, "Update Success", bookMetaData);
         } else {
-            return Result.getResultMap(500, "更新失败，图书可能不存在");
+            return Result.getResultMap(500, "Update Failed,No BookMetaData");
         }
     }
 
@@ -284,10 +272,10 @@ public class BookController {
     @PostMapping("BookItem/addInfos")
     public HashMap<String, Object> addBookItemInfo(@RequestBody BookItem bookItem) {
         if (bookItem == null || bookItem.getRfidTag() == null) {
-            return Result.getResultMap(400, "参数不能为空");
+            return Result.getResultMap(400, "Params can't be null");
         }
         int rows = bookItemMapper.insert(bookItem);
-        return rows > 0 ? Result.getResultMap(200, "添加成功") : Result.getResultMap(500, "添加失败");
+        return rows > 0 ? Result.getResultMap(200, "Add BookItem Info success") : Result.getResultMap(500, "Add BookItem Info failed");
     }
 
     /**
@@ -301,10 +289,14 @@ public class BookController {
     @DeleteMapping("BookItem/deleteInfos")
     public HashMap<String, Object> deleteBookItemInfo(@RequestParam String rfidTag) {
         if (rfidTag == null || rfidTag.isEmpty()) {
-            return Result.getResultMap(400, "rfidTag 不能为空");
+            return Result.getResultMap(500, "rfidTag no empty");
+        }
+         BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
+        if(Objects.equals(bookItem.getStatus().toString(), "Loaned") || Objects.equals(bookItem.getStatus().toString(), "Reserved")) {
+            return Result.getResultMap(500, "The BookItem is already loaned/reserved");
         }
         int rows = bookItemMapper.deleteByRfidTag(rfidTag);
-        return rows > 0 ? Result.getResultMap(200, "删除成功") : Result.getResultMap(500, "删除失败");
+        return rows > 0 ? Result.getResultMap(200, "delete success") : Result.getResultMap(500, "delete failed");
     }
 
     /**
@@ -318,10 +310,10 @@ public class BookController {
     @PutMapping("BookItem/updateInfos")
     public HashMap<String, Object> updateBookItemInfo(@RequestBody BookItem bookItem) {
         if (bookItem == null || bookItem.getRfidTag() == null) {
-            return Result.getResultMap(400, "参数不能为空");
+            return Result.getResultMap(400, "Empty parameter");
         }
         int rows = bookItemMapper.updateByRfidTag(bookItem);
-        return rows > 0 ? Result.getResultMap(200, "修改成功") : Result.getResultMap(500, "修改失败");
+        return rows > 0 ? Result.getResultMap(200, "update success") : Result.getResultMap(500, "upate failed");
     }
 
     /**
@@ -335,10 +327,10 @@ public class BookController {
     @GetMapping("BookItem/getByRfid")
     public HashMap<String, Object> getByRfid(@RequestParam String rfidTag) {
         if (rfidTag == null || rfidTag.isEmpty()) {
-            return Result.getResultMap(400, "rfidTag 不能为空");
+            return Result.getResultMap(400, "rfidTag Cant be empty");
         }
         BookItem bookItem = bookItemMapper.selectByRfidTag(rfidTag);
-        return bookItem != null ? Result.getResultMap(200, "查询成功", bookItem) : Result.getResultMap(404, "未找到");
+        return bookItem != null ? Result.getResultMap(200, "Search Success", bookItem) : Result.getResultMap(404, "未找到");
     }
 
     /**
@@ -352,10 +344,10 @@ public class BookController {
     @GetMapping("BookItem/getByIsbn")
     public HashMap<String, Object> getByIsbn(@RequestParam String isbn) {
         if (isbn == null || isbn.isEmpty()) {
-            return Result.getResultMap(400, "isbn 不能为空");
+            return Result.getResultMap(400, "isbn Cant be empty");
         }
         List<BookItem> list = bookItemMapper.selectByIsbn(isbn);
-        return Result.getListResultMap(200, "查询成功", list.size(), list);
+        return Result.getListResultMap(200, "Search Success", list.size(), list);
     }
 
     /**
@@ -371,7 +363,7 @@ public class BookController {
         // 1. 查询图书元数据
         BookMetaData metadata = bookMetadataMapper.selectByIsbn(isbn);
         if (metadata == null) {
-            return Result.getResultMap(404, "图书不存在，ISBN: " + isbn);
+            return Result.getResultMap(404, "The BookItem dont exist: " + isbn);
         }
 
         // 2. 查询该 ISBN 下的所有实物书
@@ -396,7 +388,24 @@ public class BookController {
         data.put("totalCount", totalCount);
         data.put("statusMessage", statusMessage);
 
-        return Result.getResultMap(200, "查询成功", data);
+        return Result.getResultMap(200, "Search Success", data);
+    }
+
+    private String normalizeBookStatus(String inputStatus) {
+        String value = inputStatus.trim().toLowerCase(Locale.ROOT);
+        if ("在馆".equals(value) || "available".equals(value)) {
+            return "Available";
+        }
+        if ("已借出".equals(value) || "checked out".equals(value) || "loaned".equals(value)) {
+            return "Loaned";
+        }
+        if ("遗失".equals(value) || "丢失".equals(value) || "lost".equals(value)) {
+            return "Lost";
+        }
+        if ("预约".equals(value) || "预约中".equals(value) || "reserved".equals(value)) {
+            return "Reserved";
+        }
+        return null;
     }
 }
 

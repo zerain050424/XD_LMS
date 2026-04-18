@@ -72,4 +72,24 @@ public interface UserMapper {
      * 批量导入用户数据 - 用于 Admin 角色 R2 批量导入功能
      */
     int batchInsertUsers(@Param("userList") List<User> userList);
+
+    /**
+     * 分页查询用户
+     */
+    List<User> selectUserPage(
+            @Param("pageSize") Integer pageSize,
+            @Param("offset") Integer offset,
+            @Param("roleId") Integer roleId,
+            @Param("status") Integer status,
+            @Param("keyword") String keyword
+    );
+
+    /**
+     * 查询总数
+     */
+    Integer selectUserCount(
+            @Param("roleId") Integer roleId,
+            @Param("status") Integer status,
+            @Param("keyword") String keyword
+    );
 }
