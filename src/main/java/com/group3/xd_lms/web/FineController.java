@@ -1,12 +1,18 @@
 package com.group3.xd_lms.web;
 
 import com.group3.xd_lms.mapper.FineMapper;
+import com.group3.xd_lms.mapper.BorrowRecordMapper;
+import com.group3.xd_lms.mapper.SystemSettingsMapper;
+import com.group3.xd_lms.entity.BorrowRecord;
 import com.group3.xd_lms.utils.Result;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * 财务与罚款控制类
@@ -17,8 +23,15 @@ import java.util.Map;
 public class FineController {
 
     private final FineMapper fineMapper;
-    FineController(FineMapper fineMapper) {
+    private final BorrowRecordMapper borrowRecordMapper;
+    private final SystemSettingsMapper systemSettingsMapper;
+    
+    FineController(FineMapper fineMapper, 
+                   BorrowRecordMapper borrowRecordMapper,
+                   SystemSettingsMapper systemSettingsMapper) {
         this.fineMapper = fineMapper;
+        this.borrowRecordMapper = borrowRecordMapper;
+        this.systemSettingsMapper = systemSettingsMapper;
     }
 
     /**
@@ -34,10 +47,60 @@ public class FineController {
      * @param borrowRecordId 前端传入的逾期借阅记录ID
      * @return HashMap<String, Object> 包含逾期天数、罚金单价及实时计算的总金额
      */
-    //Todo 查询单笔未还借阅记录产生的罚款
     @GetMapping("/calculate/{borrowRecordId}")
-    public HashMap<String, Object> calculateOverdueFine(@PathVariable Integer borrowRecordId) {
-        return null;
+    public HashMap<String, Object> calculateOverdueFine(@PathVariable Long borrowRecordId) {
+        // 1. 查询借阅记录
+        BorrowRecord record = borrowRecordMapper.selectById(borrowRecordId);
+        if (record == null) {
+            return Result.getResultMap(404, "借阅记录不存在");
+        }
+        
+        // 2. 检查是否已归还
+        if (record.isReturned()) {
+            return Result.getResultMap(400, "该借阅记录已归还，无逾期罚款");
+        }
+        
+        // 3. 计算逾期天数
+        LocalDateTime dueDate = record.getDueDate();
+        LocalDateTime now = LocalDateTime.now();
+        
+        // 如果还未到应还日期，返回未逾期
+        if (now.isBefore(dueDate) || now.isEqual(dueDate)) {
+            return Result.getResultMap(400, "该借阅记录未逾期");
+        }
+        
+        long overdueDays = ChronoUnit.DAYS.between(dueDate, now);
+        if (overdueDays <= 0) {
+            return Result.getResultMap(400, "该借阅记录未逾期");
+        }
+        
+        // 4. 获取每日罚金配置
+        String finePerDayStr = systemSettingsMapper.selectValueByKey("fine_per_day");
+        if (finePerDayStr == null || finePerDayStr.trim().isEmpty()) {
+            return Result.getResultMap(500, "系统配置错误：未找到每日罚金配置");
+        }
+        
+        BigDecimal finePerDay;
+        try {
+            finePerDay = new BigDecimal(finePerDayStr);
+        } catch (NumberFormatException e) {
+            return Result.getResultMap(500, "系统配置错误：每日罚金配置格式不正确");
+        }
+        
+        // 5. 计算罚款金额
+        BigDecimal calculatedAmount = finePerDay.multiply(BigDecimal.valueOf(overdueDays));
+        
+        // 6. 返回结果
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("overdueDays", overdueDays);
+        result.put("finePerDay", finePerDay);
+        result.put("calculatedAmount", calculatedAmount);
+        result.put("borrowRecordId", borrowRecordId);
+        result.put("dueDate", dueDate);
+        result.put("status", 200);
+        result.put("message", "计算成功");
+        
+        return result;
     }
 
     /**
@@ -67,13 +130,29 @@ public class FineController {
      * @param paymentMethod 支付方式 (如 "Balance", "AliPay" 等)
      * @return HashMap<String, Object> 返回支付操作结果
      */
-    // Todo 读者确认缴纳罚款
     @PostMapping("/pay")
     public HashMap<String, Object> payFine(
             @RequestParam Integer fineId,
             @RequestParam String paymentMethod) {
-        // 此处仅定义接口，不实现逻辑
-        return null;
+        
+        // 验证参数
+        if (fineId == null || fineId <= 0) {
+            return Result.getResultMap(400, "罚款记录ID无效");
+        }
+        
+        if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
+            return Result.getResultMap(400, "支付方式不能为空");
+        }
+        
+        // 更新罚款状态为Paid
+        int updated = fineMapper.updatePaymentStatus(fineId.longValue(), "Paid");
+        
+        // 检查更新是否成功
+        if (updated > 0) {
+            return Result.getResultMap(200, "罚款支付成功");
+        } else {
+            return Result.getResultMap(404, "罚款记录不存在或更新失败");
+        }
     }
 
     /**
