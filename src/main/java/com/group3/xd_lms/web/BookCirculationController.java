@@ -162,6 +162,7 @@ public class BookCirculationController {
                 return Result.getResultMap(403, "校验失败：申请人不是该书当前持有者");
             }
 
+
             // 3. 更新申请状态
             request.setStatus(isApprove ? RequestStatus.Approved : RequestStatus.Rejected);
             request.setLibrarianRemark(remark);
