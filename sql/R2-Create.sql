@@ -16,7 +16,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- 1. 系统全局配置表 (支持 Admin 配置规则)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `system_settings` (
-  `setting_key` VARCHAR(50) PRIMARY KEY COMMENT '配置键: max_loan_days(借阅期), fine_per_day(日罚款), reservation_hours(取书限时)',
+  `setting_key` VARCHAR(50) NOT NULL PRIMARY KEY COMMENT '配置键: max_loan_days(借阅期), fine_per_day(日罚款), reservation_hours(取书限时)',
   `setting_value` VARCHAR(255) NOT NULL COMMENT '配置值',
   `description` VARCHAR(255) DEFAULT NULL COMMENT '配置说明'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='全局业务规则配置';
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
 -- 2. 续借申请表 (支持 Reader 申请 & Librarian 审批)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `renewal_requests` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `borrow_record_id` INT NOT NULL COMMENT '关联的原始借阅记录ID',
   `user_id` INT NOT NULL COMMENT '申请人ID',
   `request_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '申请提交时间',
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `renewal_requests` (
 -- 3. 逾期罚款表 (支持 逾期查询 & 财务记录)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `fines` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` INT NOT NULL COMMENT '逾期用户',
   `borrow_record_id` INT NOT NULL COMMENT '关联的借阅记录',
   `amount` DECIMAL(10, 2) NOT NULL COMMENT '罚款金额',
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS `fines` (
 -- 4. 图书预约表 (支持 预约申请 & 1小时倒计时)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `reservations` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `isbn` VARCHAR(20) NOT NULL COMMENT '预约的图书ISBN',
   `user_id` INT NOT NULL COMMENT '预约人ID',
   `status` ENUM('Waiting', 'Ready', 'Completed', 'Expired', 'Cancelled') DEFAULT 'Waiting'
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS `reservations` (
 -- 5. 系统通知表 (支持 Librarian 发送逾期/取书提醒)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `notifications` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` INT NOT NULL COMMENT '接收人',
   `type` ENUM('Overdue', 'Reservation', 'System') NOT NULL COMMENT '通知类型',
   `title` VARCHAR(100) DEFAULT NULL,

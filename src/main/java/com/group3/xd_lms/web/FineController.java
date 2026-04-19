@@ -36,7 +36,7 @@ public class FineController {
      */
     //Todo 查询单笔未还借阅记录产生的罚款
     @GetMapping("/calculate/{borrowRecordId}")
-    public HashMap<String, Object> calculateOverdueFine(@PathVariable Long borrowRecordId) {
+    public HashMap<String, Object> calculateOverdueFine(@PathVariable Integer borrowRecordId) {
         return null;
     }
 
@@ -62,8 +62,6 @@ public class FineController {
      * 业务逻辑说明：
      * 1. 读者点击“缴纳”并完成模拟支付。
      * 2. 后端修改 fines 表对应记录的 status 为 'Paid'。
-     * 3. 同步更新 users 表中的 total_fines (减去已付金额)。
-     * 4. 发送一条支付成功的 Notification。
      *
      * @param fineId 罚款记录ID
      * @param paymentMethod 支付方式 (如 "Balance", "AliPay" 等)
