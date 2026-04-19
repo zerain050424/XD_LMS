@@ -18,7 +18,7 @@
         <result column="fine_id" property="fineId"/>
         <result column="fine_amount" property="fineAmount"/>
         <result column="book_title" property="bookTitle"/>
-        <association property="borrowRecord" resultMap="BorrowRecordMap"/>
+        <association property="borrowRecord" resultMap="com.group3.xd_lms.mapper.BorrowRecordMapper.BaseResultMap"/>
     </resultMap>
 
     <insert id="insertFine" useGeneratedKeys="true" keyProperty="id">
