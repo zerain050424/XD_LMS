@@ -484,9 +484,51 @@ public class UserController {
     //TODO 管理员批量导入用户数据(R2)
     @PostMapping("/batch")
     public HashMap<String, Object> batchImportUsers(@RequestBody List<User> userList) {
-        return null;
-    }
+        // 1. 方法开头先声明变量！！！
+        int success = 0;
+        int fail = 0;
+        List<String> msg = new ArrayList<>();
 
+        if (userList == null || userList.isEmpty()) {
+            return Result.getResultMap(400, "用户列表不能为空");
+        }
+
+        for (User u : userList) {
+            if (u.getUser_account() == null || u.getUser_account().isEmpty()) {
+                fail++;
+                msg.add("账号为空，跳过");
+                continue;
+            }
+            User exist = userMapper.selectByUserAccount(u.getUser_account());
+            if (exist != null) {
+                fail++;
+                msg.add(u.getUser_account() + " 已存在");
+                continue;
+            }
+            if (u.getPassword() == null || u.getPassword().isEmpty()) {
+                u.setPassword("123456");
+            }
+            if (u.getStatus() == null) {
+                u.setStatus(User.UserStatus.Active);
+            }
+            if (u.getRoleId() == null) {
+                u.setRoleId(3);
+            }
+            try {
+                userMapper.insert(u);
+                success++;
+            } catch (Exception e) {
+                fail++;
+                msg.add(u.getUser_account() + " 插入失败");
+            }
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("成功", success);
+        data.put("失败", fail);
+        data.put("原因", msg);
+        return Result.getResultMap(200, "批量导入完成", data);
+    }
 
     /**
      * 更新特定的全局业务规则
