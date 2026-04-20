@@ -26,4 +26,22 @@
         UPDATE notifications SET is_read = 1 WHERE id = #{id}
     </update>
 
+    <select id="getBorrowHistoryByUserId" resultType="map">
+        SELECT 
+            br.id AS borrowId,
+            bm.title AS bookTitle,
+            br.borrow_date AS borrowDate,
+            br.due_date AS dueDate,
+            br.return_date AS returnDate
+        FROM 
+            borrow_records br
+        JOIN 
+            book_items bi ON br.rfid_tag = bi.rfid_tag
+        JOIN 
+            book_metadata bm ON bi.isbn = bm.isbn
+        WHERE 
+            br.user_id = #{userId}
+        ORDER BY 
+            br.borrow_date DESC
+    </select>
 </mapper>

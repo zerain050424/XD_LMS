@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,11 +66,25 @@ public class NotificationController {
      * @param userId 用于获取当前登录用户ID
      * @return HashMap<String, Object> 包含通知记录列表
      */
-    //Todo 读者获取本人所有的通知
     @GetMapping("/my")
-    public HashMap<String, Object> getMyNotifications(@RequestParam Integer userId) {
-        // 此处仅定义接口，不实现逻辑
-        return null;
+public HashMap<String, Object> getMyNotifications(@RequestParam Long userId) {
+        HashMap<String, Object> response = new HashMap<>();
+        try {
+            // 使用 NotificationMapper 查询用户通知
+List<Notification> notifications = notificationMapper.selectByUserId(userId);
+
+// 查询用户的历史借阅记录
+List<Map<String, Object>> borrowHistory = notificationMapper.getBorrowHistoryByUserId(userId);
+
+// 将借阅记录整合到返回结果中
+response.put("borrowHistory", borrowHistory);
+            response.put("status", "success");
+            response.put("notifications", notifications);
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+        }
+        return response;
     }
 
     /**

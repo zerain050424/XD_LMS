@@ -4,6 +4,7 @@ import com.group3.xd_lms.entity.Notification;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 系统通知映射接口 - 对应数据库 notifications 表
@@ -26,4 +27,8 @@ public interface NotificationMapper {
      * 标记消息为已读
      */
     int markAsRead(@Param("id") Long id);
+    /**
+     * 查询用户的历史借阅记录
+     */
+    List<Map<String, Object>> getBorrowHistoryByUserId(@Param("userId") Long userId);
 }
