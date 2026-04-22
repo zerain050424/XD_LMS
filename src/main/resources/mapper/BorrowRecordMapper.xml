@@ -11,12 +11,14 @@
         <result column="due_date" property="dueDate"/>
         <result column="return_date" property="returnDate"/>
         <result column="renew_count" property="renewCount"/>
+        <result column="is_p2p_transfer" property="isP2pTransfer"/>
+        <result column="transfer_from_user_id" property="transferFromUserId"/>
     </resultMap>
 
     <!-- 新增借阅 -->
     <insert id="insert">
         INSERT INTO borrow_records
-            (user_id, rfid_tag, borrow_date, due_date, renew_count)
+        (user_id, rfid_tag, borrow_date, due_date, renew_count)
         VALUES (#{userId}, #{rfidTag}, #{borrowDate}, #{dueDate}, #{renewCount})
     </insert>
 
@@ -31,7 +33,7 @@
     <update id="updateRenewInfo">
         UPDATE borrow_records
         SET due_date = #{dueDate},
-            renew_count = #{renewCount}
+        renew_count = #{renewCount}
         WHERE id = #{id}
     </update>
 
@@ -67,9 +69,7 @@
         SELECT * FROM borrow_records
     </select>
 
-
-    <!-- 2. 更新应还日期与续借次数 -->
-    <!-- 说明：用于管理员审批通过续借申请后，延长该书籍的归还期限并累加续借计数 -->
+    <!-- 更新应还日期与续借次数 -->
     <update id="updateDueDateAndRenewCount">
         UPDATE borrow_records
         <set>
@@ -79,18 +79,17 @@
         WHERE id = #{id}
     </update>
 
-
     <!-- 扫码直转：原子化更新借阅人及转借标记 -->
-    <!-- 逻辑：修改持有者ID，标记为P2P，记录前任ID，重置借阅起始时间和续借计数 -->
     <update id="updateForP2pTransfer">
         UPDATE borrow_records
         SET
-            user_id = #{userId},
-            is_p2p_transfer = 1,
-            transfer_from_user_id = #{transferFromUserId},
-            borrow_date = NOW(),
-            due_date = #{dueDate},
-            renew_count = 0
+        user_id = #{userId},
+        is_p2p_transfer = 1,
+        transfer_from_user_id = #{transferFromUserId},
+        borrow_date = NOW(),
+        due_date = #{dueDate},
+        renew_count = 0
         WHERE id = #{id}
+        AND return_date IS NULL
     </update>
 </mapper>
