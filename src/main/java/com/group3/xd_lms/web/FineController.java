@@ -130,11 +130,11 @@ public class FineController {
         
         // 验证参数
         if (fineId == null || fineId <= 0) {
-            return Result.getResultMap(400, "罚款记录ID无效");
+            return Result.getResultMap(400, "Invalid fine record ID");
         }
         
         if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-            return Result.getResultMap(400, "支付方式不能为空");
+            return Result.getResultMap(400, "Payment method cannot be empty");
         }
         
         // 更新罚款状态为Paid
@@ -142,9 +142,9 @@ public class FineController {
         
         // 检查更新是否成功
         if (updated > 0) {
-            return Result.getResultMap(200, "罚款支付成功");
+            return Result.getResultMap(200, "Fine paid successfully");
         } else {
-            return Result.getResultMap(404, "罚款记录不存在或更新失败");
+            return Result.getResultMap(404, "Fine record does not exist or update failed");
         }
     }
 
