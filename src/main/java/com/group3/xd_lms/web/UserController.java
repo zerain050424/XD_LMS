@@ -28,7 +28,74 @@ public class UserController {
         this.borrowRecordMapper = borrowRecordMapper;
         this.systemSettingsMapper = systemSettingsMapper;
     }
+    /**
+     * 用户注册接口
+     * URL: POST /users/register
+     * 功能：允许新用户自主注册账号。默认设置为“读者”角色 (RoleID: 3) 且状态为“活跃”。
+     *
+     * @param user 包含注册信息的实体对象 (需提供 user_account, password, fullName, email)
+     * @return HashMap<String, Object> 注册结果状态及用户信息
+     */
+    @PostMapping("/register")
+    public HashMap<String, Object> register(@RequestBody User user) {
+        // 1. 基础非空校验
+        if (user.getUser_account() == null || user.getUser_account().trim().isEmpty()) {
+            return Result.getResultMap(400, "注册失败：账号不能为空");
+        }
+        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+            return Result.getResultMap(400, "注册失败：密码不能为空");
+        }
+        if (user.getFullName() == null || user.getFullName().trim().isEmpty()) {
+            return Result.getResultMap(400, "注册失败：姓名不能为空");
+        }
 
+        // 2. 账号唯一性检查
+        // 防止数据库 user_account 字段冲突
+        User existingUser = userMapper.selectByUserAccount(user.getUser_account());
+        if (existingUser != null) {
+            return Result.getResultMap(409, "注册失败：该账号已被占用");
+        }
+
+        // 3. 设置注册用户的默认属性
+        // 默认角色设为 3 (读者 Reader)
+        user.setRoleId(3);
+        // 默认状态设为 Active (正常使用)
+        user.setStatus(User.UserStatus.Active);
+
+        // 如果你的数据库没有设置自动生成时间，也可以在 Java 层设置
+        // user.setCreatedAt(new LocalDateTime());
+
+        // 4. 执行持久化操作
+        try {
+            int rows = userMapper.insert(user);
+            System.out.println(rows);
+            if (rows > 0) {
+                // 5. 注册成功处理
+                // 安全起见，返回给前端的对象中抹除密码
+                user.setPassword(null);
+                return Result.getResultMap(200, "注册成功", user);
+            } else {
+                return Result.getResultMap(500, "注册失败：服务器保存数据时出错");
+            }
+        } catch (Exception e) {
+            // 捕获可能的数据库异常（如字段长度超出等）
+            return Result.getResultMap(500, "注册异常：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取当前登录用户的状态
+     * URL: GET /users/status
+     * 功能：前端传入userId,后端根据userId返回状态
+     *
+     * @param userId 用于获取当前登录用户 ID
+     * @return HashMap<String, Object> 包含用户实体的通用结果
+     */
+    @GetMapping("/status")
+    public HashMap<String, Object> GetUserStatus(@RequestParam Integer userId) {
+        User res = userMapper.selectById(Long.valueOf(userId));
+        return Result.getResultMap(200, "Get User Status Success", res.getStatus());
+    }
     /**
      * 用户登录接口
      * URL: POST /users/login
